@@ -14,6 +14,11 @@ async function screen() {
   return {root,context,elements,
     route(hash){context.location.hash=hash;listeners.hashchange();},
     async click(action,data={}){await listeners.click({target:{closest(selector){return selector==='[data-action]'?{dataset:{action,...data}}:null;}}});},
+    async selectDeduction(key){
+      root.querySelectorAll=()=>[];
+      try {await listeners.click({target:{closest(selector){return selector==='[data-deduction-row]'?{dataset:{deductionRow:key}}:null;}}});}
+      finally {delete root.querySelectorAll;}
+    },
     async change(id,value,dataset={}){await listeners.change({target:{id,value,dataset}});},
     async submit(kind,elements,data={}){await listeners.submit({preventDefault(){},target:{id:kind,elements,dataset:data,matches(selector){return kind==='decision'?selector.includes('.decision-form'):selector.includes('#'+kind);}}});},
   };
@@ -70,4 +75,16 @@ test('crop selection stays temporary until explicitly saved and can be cancelled
   assert.equal(vm.runInContext('state.draft[0].solutionCrops[0].label',s.context),'Correct answer');
   await s.click('publish');
   assert.equal(vm.runInContext('state.versions[0].questions[0].solutionCrops.length',s.context),1);
+});
+
+test('independent deduction selection survives navigation without altering published scores',async()=>{
+  const s=await screen();s.route('#/homework/1/standards');await s.click('sample-rubric');await s.click('publish');
+  const keys=JSON.parse(vm.runInContext('JSON.stringify(state.draft[0].criteria[0].bands.map(b => `0:${state.draft[0].criteria[0].id}:${b.id}`))',s.context));
+  const before=vm.runInContext('JSON.stringify(state)',s.context);
+  await s.selectDeduction(keys[0]);await s.selectDeduction(keys[1]);
+  s.route('#/homework/1');s.route('#/homework/1/standards');
+  assert.equal((s.root.innerHTML.match(/class="deduction-marker"[^>]*aria-pressed="true"/g)||[]).length,2);
+  await s.selectDeduction(keys[0]);s.route('#/homework/1/standards');
+  assert.equal((s.root.innerHTML.match(/class="deduction-marker"[^>]*aria-pressed="true"/g)||[]).length,1);
+  assert.equal(vm.runInContext('JSON.stringify(state)',s.context),before);
 });

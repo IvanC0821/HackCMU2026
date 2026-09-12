@@ -86,3 +86,13 @@ must not change the reference used for a submitted attempt. The studio remains
 reachable through Standards, with Grade and Teaching retaining their own routes.
 Both module sets belong in the static allowlist, standalone bundle and controller
 harness. UI editing selectors never update student scores.
+
+The current integration is based on Joaquin's newer
+`agent/frontend/pdf-hint-callouts` branch at `1bf466b`, including PR #9's independent
+deduction selectors and PR #11's persistent student PDF callouts and fictional
+graded example. Preserve those commits as ancestors of this integration.
+Independent selections affect rubric-authoring focus only; existing score-band
+validation still governs TA review. The local graded example does not submit work
+to the connected classroom. The user-requested two-screen simulation is deferred
+until Ivan is ready to watch; the prepared test datasets are separate from the
+fictional one-click UI example.
