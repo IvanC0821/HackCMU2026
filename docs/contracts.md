@@ -206,3 +206,30 @@ existing evidence is rewritten. Failed jobs roll back OCR and can be explicitly
 retried (which can incur another charge); there are no automatic HTTP retries.
 Safe job errors include `glm_ocr_not_configured`, `ocr_image_too_large`,
 `ocr_invalid_response`, `ocr_invalid_geometry`, and `ocr_request_failed`.
+
+## Assignment hint preparation and professor review
+
+Hints are prepared once during assignment setup, keyed to the exact rubric, question,
+policy, and attached reference-document snapshot. Student feedback never invokes a hint
+model. Attached graded examples inform AI drafts, but the current standard takes precedence;
+no unrelated student records are sent upstream. Each draft retains its original proposal,
+source document IDs, calibration notes, model provenance, and professor edits/approval.
+
+Core: creating a rubric also prepares a hint bank (queued AI if enabled, otherwise imported
+rubric hints and editable templates). `GET/PUT /api/v1/rubric-versions/{id}/hint-bank` reads or
+edits it; `POST .../hint-bank:approve` explicitly approves it; `POST .../hint-bank:generate`
+retries generation. Writes include `expected_version`; approval is instructor-only. Published
+rubrics require an approved bank and freeze it. New standards require a new bank. Assignment
+creation with generated feedback and external AI enabled also queues initial rubric drafting.
+
+Classroom: saving a nonempty assignment draft prepares the same bank automatically.
+`GET/PUT /classroom/hint-bank`, `POST /classroom/hint-bank:approve`, and
+`POST /classroom/hint-bank:generate` support staff setup. Professor approval is required before
+publishing a new version. Student findings select only approved hints for that published
+snapshot. Saving reviews does not regenerate hints. Existing published assignments continue
+with generic feedback until a new reviewed standard is published.
+
+Generation is a persistent `assignment_hints` job. Requests and worker completions use version
+checks; stale work cannot overwrite edits/approvals. Failure leaves editable templates and
+an inspectable failed job; regeneration is explicit. Classroom `--ai-hints` enables external
+AI for setup and starts a worker; the default remains a complete manual, no-external-AI path.
