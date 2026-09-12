@@ -4,26 +4,22 @@
   <meta charset="utf-8">
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Verity classroom workspace. Review homework, rubric feedback, and instructor-approved grades.">
-  <title>Verity · Course dashboard</title>
+  <meta name="description" content="Set course-specific homework standards and review proposed deductions in the Verity teaching workspace.">
+  <title>Verity · Homeworks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./app.mjs"></script>
+  <link rel="stylesheet" href="./instructor.css">
+  <script type="module" src="./instructor.mjs"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div id="app"></div>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
-  <dialog id="course-dialog" aria-labelledby="dialog-title">
-    <form id="course-form">
-      <div class="dialog-heading"><h2 id="dialog-title">Add a sample course</h2><button type="button" class="icon-button" data-action="close-dialog" aria-label="Close dialog">×</button></div>
-      <p class="muted">Try the dashboard with your own course. Changes last until you refresh.</p>
-      <label for="course-code">Course code</label><input id="course-code" name="code" required maxlength="24" placeholder="21-254">
-      <label for="course-title">Course name</label><input id="course-title" name="title" required maxlength="100" placeholder="Linear algebra">
-      <div class="dialog-actions"><button type="button" class="button" data-action="close-dialog">Cancel</button><button class="button primary">Add course</button></div>
-    </form>
+  <dialog id="pdf-dialog" aria-labelledby="pdf-title">
+    <div class="dialog-heading"><h2 id="pdf-title">Reference PDF</h2><button type="button" class="icon-button" data-do="close-pdf" aria-label="Close PDF">×</button></div>
+    <div id="pdf-body"></div>
   </dialog>
   <noscript>This workspace needs JavaScript to display courses and review submissions.</noscript>
 </body>

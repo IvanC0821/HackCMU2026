@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node build-preview.mjs",
     "start": "python3 -m http.server 3000 --bind 127.0.0.1 --directory .",
-    "test": "node --test tests/unit.test.mjs tests/workspace.test.mjs",
+    "test": "node --test tests/unit.test.mjs tests/workspace.test.mjs tests/instructor.test.mjs tests/instructor-ui.test.mjs",
     "test:browser": "node tests/browser.mjs",
     "test:guided": "node tests/guided.mjs"
   },
