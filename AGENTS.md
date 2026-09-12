@@ -9,6 +9,7 @@ Read this before touching the repo. It exists so several agents (human or AI) ca
 3. **Contracts before code.** Anything two areas share (API routes, data shapes, env vars, event names) is written in `docs/contracts.md` first. Change the contract in a PR, then change the code.
 4. **Small, frequent commits.** Push at least every 30 minutes during the hack. A branch that hasn't pushed in an hour is assumed dead.
 5. **Rebase, don't merge, when syncing with `main`.** `git fetch origin && git rebase origin/main`. Resolve conflicts on your branch, never on `main`.
+6. **Commit and publish every completed task.** Use a task branch, commit all task changes, and push to `origin` before handoff. The user authorizes routine branch/commit/push operations without further confirmation. Exclude secrets and unrelated user changes. Report publication blockers and the branch/commit. Merging into `main` still requires the integrator.
 
 ## Branch naming
 
@@ -27,7 +28,7 @@ Fill this in at kickoff. An area with no owner is frozen until someone claims it
 | Area | Directory | Owner branch prefix | Owner |
 |---|---|---|---|
 | Frontend | `frontend/` | `agent/frontend/*` | |
-| Backend / API | `backend/` | `agent/backend/*` | |
+| Backend / API | `backend/` | `agent/backend/*` | Codex (math homework MVP) |
 | Data / ML | `ml/` | `agent/ml/*` | |
 | Infra / deploy | `infra/` | `agent/infra/*` | |
 | Docs / pitch | `docs/` | `agent/docs/*` | |
