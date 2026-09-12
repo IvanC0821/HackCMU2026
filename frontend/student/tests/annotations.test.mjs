@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {studentHint, located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup} from '../annotations.mjs';
+import {studentHint, located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup, questionHintMarkup} from '../annotations.mjs';
 const finding={id:'q3:3a',pageIndex:2,x:.6,y:.3,kind:'line',category:'Notation error',message:'Check notation here.',boxes:[{x:.2,y:.28,width:.35,height:.04}]};
 test('circles preserve the actual saved error point at every zoom and page',()=>{
  const [a]=layoutMarkers([finding],2,600,800),[b]=layoutMarkers([finding],2,900,1200);
@@ -67,4 +67,16 @@ test('student hints omit diagnosis labels and later sentences without altering g
  assert.equal(studentHint('Is this step supported? Write the missing proof.'),'Is this step supported?');
  assert.equal(studentHint('A single observation without punctuation'),'A single observation without punctuation');
  assert.equal(studentHint(null),'');
+});
+
+test('question hints work without inventing a paper location or exposing another question',()=>{
+ const unlocated={id:'q6:d',questionId:'q6',message:'Check whether a matrix can equal its own negative. The answer is zero.'};
+ const html=questionHintMarkup([unlocated,{...finding,questionId:'q3'}],'q6',6);
+ assert.match(html,/Show hint for Question 6/);
+ assert.match(html,/popovertarget="question-hint"/);
+ assert.match(html,/Check whether a matrix can equal its own negative/);
+ assert.doesNotMatch(html,/The answer is zero|Check notation here|paper-marker|left:/);
+ assert.equal(questionHintMarkup([unlocated],'q1',1),'');
+ assert.deepEqual(layoutMarkers([unlocated],0,600,800),[]);
+ assert.match(questionHintMarkup([{...unlocated,message:'<script>Bad</script>'}],'q6',6),/&lt;script&gt;/);
 });

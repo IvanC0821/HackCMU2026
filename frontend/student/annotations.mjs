@@ -44,3 +44,11 @@ export function detailMarkup(f, placement) {
   const boxes=(Array.isArray(f.boxes)?f.boxes:[]).filter(validBox);
   return {highlights:boxes.map(b=>`<span class="annotation-highlight ${f.kind==='line'?'line':'context'}" style="left:${b.x*100}%;top:${b.y*100}%;width:${b.width*100}%;height:${b.height*100}%"></span>`).join(''),note:''};
 }
+
+// A question-level hint remains useful when handwritten work has no text anchor.
+// Keep it in the toolbar; never invent a point on the student's paper.
+export function questionHintMarkup(findings, questionId, number) {
+  const items = findings.filter(f => f.questionId === questionId);
+  if (!items.length) return '';
+  return `<button type="button" class="question-hint-trigger" popovertarget="question-hint" aria-label="Show hint for Question ${esc(number)}"><span aria-hidden="true">?</span>Question hint</button><aside id="question-hint" class="question-hint-popover" popover aria-labelledby="question-hint-title"><div class="question-hint-header"><strong id="question-hint-title">Question ${esc(number)} hint</strong><button type="button" popovertarget="question-hint" popovertargetaction="hide" aria-label="Close hint">×</button></div>${items.map(f => `<p>${esc(studentHint(f.message))}</p>`).join('')}<small>A general hint for this question.</small></aside>`;
+}
