@@ -20,7 +20,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_live_rubric_ocr_assessment_and_hints(env, homework):
+def configure_live(env):
     path = Path(os.getenv("VERITY_LIVE_ENV_FILE", "../.env"))
     values = {**dotenv_values(path), **os.environ}
     cfg = env["config"]
@@ -33,6 +33,10 @@ def test_live_rubric_ocr_assessment_and_hints(env, homework):
     cfg.glm_ocr_bbox_format = values.get("GLM_OCR_BBOX_FORMAT", "pixels")
     # Remove plaintext secrets from local variables before assertion tracebacks.
     del values
+
+
+def test_live_rubric_drafting(env, homework):
+    configure_live(env)
     with env["factory"]() as db:
         assignment = db.get(Assignment, homework["assignment"]["id"])
         assignment.data = {**assignment.data, "ocr_enabled": True}
@@ -55,6 +59,13 @@ def test_live_rubric_ocr_assessment_and_hints(env, homework):
     draft = call(env, "GET", f"/rubric-versions/{draft_done['result_id']}")
     assert draft["status"] == "draft"
 
+
+def test_live_ocr_assessment_and_hints(env, homework):
+    configure_live(env)
+    with env["factory"]() as db:
+        assignment = db.get(Assignment, homework["assignment"]["id"])
+        assignment.data = {**assignment.data, "ocr_enabled": True}
+        db.commit()
     job = call(
         env,
         "POST",
