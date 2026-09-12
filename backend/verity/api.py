@@ -511,6 +511,12 @@ def get_submission(submission_id: str, db: DB, user: Actor):
 def map_regions(submission_id: str, body: RegionMapIn, db: DB, user: Actor):
     submission, assignment, _ = submission_access(db, user, submission_id)
     require_staff(db, user, assignment.course_id)
+    submission = db.scalar(
+        select(Submission)
+        .where(Submission.id == submission_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     has_assessment = db.scalar(
         select(Assessment.id).where(Assessment.submission_id == submission_id).limit(1)
     )
@@ -561,6 +567,12 @@ def map_regions(submission_id: str, body: RegionMapIn, db: DB, user: Actor):
 @app.post(P + "/submissions/{submission_id}/assessments", response_model=JobOut, status_code=202)
 def start_assessment(submission_id: str, body: AssessmentIn, key: Key, db: DB, user: Actor):
     submission, assignment, role = submission_access(db, user, submission_id)
+    submission = db.scalar(
+        select(Submission)
+        .where(Submission.id == submission_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     rubric = found(db, Rubric, body.rubric_id)
     if rubric.assignment_id != assignment.id or rubric.status != "published":
         raise HTTPException(422, "Select a published rubric for this assignment")

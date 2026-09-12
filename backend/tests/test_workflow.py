@@ -251,3 +251,20 @@ def test_pending_anchor_and_root_cause_cycles(env, homework):
         body={**body, "root_cause_id": f["id"], "expected_version": f["version"]},
         expected=422,
     )
+
+
+def test_staff_mapping_is_pinned_once_processing_is_queued(env, homework):
+    path = f"/submissions/{homework['submission']['id']}/regions"
+    body = {"question_regions": {"q1": [homework["regions"][0]["id"]]}}
+    assert call(env, "PUT", path, body=body)["region_map"] == body["question_regions"]
+    env["config"].external_ai_enabled = True
+    call(
+        env,
+        "POST",
+        f"/submissions/{homework['submission']['id']}/assessments",
+        role="student",
+        key="pin-evidence",
+        body={"rubric_id": homework["rubric"]["id"], "source": "ai"},
+        expected=202,
+    )
+    call(env, "PUT", path, body={"question_regions": {}}, expected=409)
