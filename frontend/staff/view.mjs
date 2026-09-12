@@ -26,7 +26,7 @@ function sectionTabs(page) {
   return `<nav class="section-tabs" aria-label="Homework sections">${[['dashboard', 'Overview', ''], ['standards', 'Rubric', '/standards'], ['submissions', 'Grading', '/submissions']].map(([id, label, path]) => `<a href="#/homework/1${path}" ${page === id || (page === 'review' && id === 'submissions') ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
 function header(s, page, ui) {
-  return `<header class="page-header"><a class="breadcrumb" href="#/">${e(s.courseCode || (s.course === 'Linear Algebra' ? '21-254 · Linear Algebra' : s.course))}</a><div class="heading-row"><h1>${page === 'home' ? 'Homework' : e(s.title)}</h1>${page === 'standards' ? btn('publish', 'Publish rubric', ui.busy || !s.draft.length || (!s.dirty && s.versions.length) || ui.cropSelection ? 'disabled' : '', true) : ''}</div></header>${page !== 'home' ? sectionTabs(page) : ''}`;
+  return `<header class="page-header">${page === 'home' ? '<h1>Homeworks</h1>' : `<nav class="homework-breadcrumb" aria-label="Breadcrumb"><a href="#/">Homeworks</a><span aria-hidden="true">›</span><h1>${e(s.title)}</h1></nav>`}${page === 'standards' ? btn('publish', 'Publish rubric', ui.busy || !s.draft.length || (!s.dirty && s.versions.length) || ui.cropSelection ? 'disabled' : '', true) : ''}</header>${page !== 'home' ? sectionTabs(page) : ''}`;
 }
 function home(s) {
   const stats = analytics(s), rubric = activeRubric(s);
