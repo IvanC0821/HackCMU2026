@@ -58,8 +58,8 @@ body:has(.rubric-studio) .page-content{margin:0;max-width:none}
 .rubric-page-header{height:64px;padding:0 24px;display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--line);background:white}
 .rubric-page-header>a{font-size:.875rem}.rubric-page-header h1{font-size:1rem;font-weight:700;letter-spacing:0}.rubric-page-header .save-state{margin:0 0 0 auto;font-size:.75rem}.rubric-page-header .btn{min-height:36px;padding:7px 14px;font-size:.75rem}
 body:has(.rubric-studio) main>.notice{margin:0;padding:8px 24px;border-radius:0;font-size:.8125rem}
-.rubric-studio{border:0;border-radius:0;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);height:calc(100dvh - 64px);min-height:520px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
-.open-demo .rubric-studio{height:calc(100dvh - 64px - var(--demo-bar-height,52px))}
+.rubric-studio{border:0;border-radius:0;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);height:calc(100dvh - 113px);min-height:520px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+.open-demo .rubric-studio{height:calc(100dvh - 113px - var(--demo-bar-height,52px))}
 .rubric-document{display:grid;grid-template-columns:auto 1fr;grid-template-rows:56px minmax(0,1fr) 32px;height:100%;position:relative}
 .rubric-document-toolbar{padding:8px 16px;background:#f6f8f8}.rubric-document-toolbar select{max-width:100%;font-size:.8rem;min-height:36px;border-color:transparent;background:transparent;padding:4px}
 .rubric-view-tools{justify-content:flex-end;background:#f6f8f8;padding:8px 16px;gap:20px;flex-wrap:nowrap}
@@ -99,3 +99,11 @@ body:has(.rubric-studio) main>.notice{margin:0;padding:8px 24px;border-radius:0;
 .rubric-sidebar .question-editor>[data-action="add-criterion"]{border:1px solid #c7d1d6;border-radius:1px;background:#f9fafb;padding:8px 14px;min-height:38px}.rubric-sidebar .studio-question-nav>.btn{border:1px solid #c7d1d6;border-radius:1px;background:#f9fafb}.rubric-page-header .btn{border-radius:1px}
 
 .assignment-hints{border-top:1px solid var(--line);padding:18px 0;font-size:.8125rem}.assignment-hints>summary{cursor:pointer;font-weight:700;color:var(--teal)}.assignment-hints p,.assignment-hints [role=status]{margin:12px 0}.assignment-hints button{padding:8px 12px;margin:6px 6px 6px 0;border:1px solid #bac6c9;background:white;color:var(--teal);border-radius:2px;min-height:40px}.assignment-hints .hint-editor label{margin:14px 0}.assignment-hints pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.75rem}
+
+/* Keep homework navigation present in the full-width rubric editor. */
+body:has(.rubric-studio) main>.section-tabs{margin:0;padding:0 24px;height:49px;background:white;gap:28px}
+.chart-empty-label{fill:var(--muted);font-size:14px}
+.homework-row h2{font-size:1.125rem}
+@media(max-width:859px){body:has(.rubric-studio) main>.section-tabs{padding:0 16px}}
+
+.chart-empty-backdrop{fill:var(--surface)}
