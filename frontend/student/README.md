@@ -75,3 +75,25 @@ This is a UI adapter shape, not an approved replacement for the repository API c
 `npm test`: seven Node tests cover mapping, input guards, snapshot isolation, consistent fixture totals, no arbitrary-upload grades, and cancellation. `npm run fixtures` regenerates the fictional PDF using pdf-lib.
 
 Browser verified: sample PDF rendering, multi-page/shared-page mapping, gated submit, provisional 24/30 result, marker-linked question/category changes, phone layout (390×844, no horizontal page overflow), and persistence after refresh. No console errors observed during those checks. Custom local-file selection could not be automated because the Chrome extension disallowed file access; test the picker and drag/drop manually. Live backend behavior is not verified or connected.
+
+## Persistent PDF hint callouts
+
+The student feedback viewer places a small yellow circle at each saved normalized error point. Yellow connectors lead to rectangular, pale-yellow hint boxes with dark text in a gutter beside the page. All located hints on the current page remain visible, including after selection is cleared. Boxes are spaced using their rendered heights, so long hints and nearby errors do not overlap. Zoom keeps anchors tied to PDF coordinates; on narrow screens the document and hint gutter scroll inside the viewer.
+
+Only existing student-visible finding messages are displayed. Missing locations remain in the feedback sidebar without an invented PDF marker. Related-work and approximate-part anchors retain their location qualifiers. The original PDF bytes are unchanged.
+
+Run `npm run test:annotations --prefix frontend` from the repository root for the browser workflow; `npm test --prefix frontend/student` covers geometry, stable numbering, escaping, mapping, and revision behavior.
+
+## One-click graded example
+
+Choose **View estimated example**, or open the standalone student viewer with `?example=graded`. The example immediately opens the existing three-page fictional PDF with its page assignments and applied deductions: Question 1 10/10, Question 2 6/10 (−4 circular reasoning), Question 3 8/10 (−2 missing domain), total 24/30. Yellow hint boxes and the feedback sidebar label each deduction as estimated. Positions are taken from the sample PDF text geometry. This fixture is saved locally once and never submits work or changes a course grade.
+
+## Student submission layout
+
+The review screen uses a wide PDF viewer and a single right sidebar. Every total and question score is presented as an **estimated grade**, including server results already marked reviewed. The selected question expands its **estimated deductions**; individual amounts appear only when supplied, and the question total is calculated from its score. Question prompts and assigned pages are available behind **Question & pages**. No grader identities or review-status labels appear.
+
+Zoom controls sit above the PDF (75–300%, with a fit-width reset). Question rows, deduction links, page controls, and **Next question** navigate the submission. On phones, switch between Submission and Questions & estimates; a located deduction opens its PDF page. Original download, upload revisions, history, and connected hand-in remain available. The student demo navigation omits the staff perspective link.
+
+Validation: 16 student unit tests and the annotation browser workflow cover persistent callouts, exact anchors, zoom, phone overflow, question/deduction navigation, example persistence, and estimate labels for both local examples and connected reviewed results.
+
+Student-facing hints have no error-type title, including in accessible marker labels and announcements. Only the opening sentence is displayed in the sidebar and persistent PDF note; this also applies to older saved results. The two example hints stop at “The next case is assumed rather than derived.” and “The condition k > 0 does not specify which values k can take.” Grader categories and source feedback are preserved. Estimated grade labels remain; redundant “not official” copy has been removed.

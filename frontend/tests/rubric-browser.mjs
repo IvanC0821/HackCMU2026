@@ -85,8 +85,14 @@ try{
  await page.locator('.deduction-marker').first().click();
  assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'true');
  await page.locator('.deduction-item').nth(1).click({position:{x:4,y:4}});
- assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'true','Selecting another deduction preserves the first');
  assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true');
+ await page.locator('.deduction-marker').first().click();
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true','Deselecting one leaves other deductions selected');
+ await page.getByRole('tab',{name:'Files & settings'}).click();
+ await page.getByRole('tab',{name:'Rubric',exact:true}).click();
+ assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true','Independent selections survive rerender');
  await page.screenshot({path:'/private/tmp/verity-rubric-deductions.png',fullPage:true});
  await page.reload();await page.locator('.question-reference > summary').click();await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'Crops survive remote save and reload');

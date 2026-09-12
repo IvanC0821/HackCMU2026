@@ -104,13 +104,13 @@ export function addSignOut() {
   if (demo) {
     document.body.classList.add('open-demo');
     const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
-    nav.innerHTML = `<span>Open demo <small>Dummy data only · everyone has staff access</small></span><div><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA / Professor</a></div>`;
+    nav.innerHTML = `<span>${perspective === 'student' ? 'Student preview <small>Example data · estimates only</small>' : 'Open demo <small>Dummy data only · everyone has staff access</small>'}</span><div><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a>${perspective === 'teacher' ? '<a href="/teacher/" aria-current="page">TA / Professor</a>' : ''}</div>`;
     document.body.prepend(nav);
     if (perspective === 'student' && demoStudents.length) {
       const select = document.createElement('select'); select.setAttribute('aria-label', 'Demo student');
       for (const student of demoStudents) {
         const option = document.createElement('option'); option.value = student.id;
-        option.textContent = `${student.name}${student.new ? ' · new submission' : ' · past grade'}`;
+        option.textContent = `${student.name}${student.new ? ' · new submission' : ' · estimated feedback'}`;
         select.append(option);
       }
       select.value = sessionStorage.getItem(studentKey);

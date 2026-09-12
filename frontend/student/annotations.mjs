@@ -1,45 +1,46 @@
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+// Display the opening observation only, including for saved older feedback.
+const sentences = new Intl.Segmenter('en', {granularity:'sentence'});
+export function studentHint(message) {
+  const text = String(message ?? '').trim();
+  return sentences.segment(text)[Symbol.iterator]().next().value?.segment.trim() || '';
+}
 export const located = f => Number.isInteger(f?.pageIndex) && f.pageIndex >= 0 && ['x','y'].every(k => Number.isFinite(f[k]) && f[k] >= 0 && f[k] <= 1);
 export const findingNumber = (findings, id) => findings.findIndex(f => f.id === id) + 1;
 const validBox = b => b && ['x','y','width','height'].every(k=>Number.isFinite(b[k])) && b.x>=0 && b.y>=0 && b.width>0 && b.height>0 && b.x+b.width<=1.000001 && b.y+b.height<=1.000001;
 export function locationLabel(f) {
-  if (!located(f)) return 'Location needs TA review';
+  if (!located(f)) return 'No precise location available';
   return `${f.kind === 'line' ? 'Marked line' : f.kind === 'work' ? 'Related work' : 'Part location'} · Page ${f.pageIndex + 1}`;
 }
 export function layoutMarkers(findings, page, width, height) {
-  const placements = [];
-  for (const f of findings.filter(f => f.pageIndex === page && located(f)).sort((a,b) => a.y-b.y || a.x-b.x)) {
-    const box = (Array.isArray(f.boxes) ? f.boxes : []).find(validBox);
-    const right = box ? (box.x + box.width) * width : f.x * width;
-    const left = box ? box.x * width : f.x * width;
-    const useLeft = right + 54 > width && left >= 54;
-    const targetX = clamp(useLeft ? left - 2 : right + 2, 0, width);
-    const targetY = (box ? box.y + box.height / 2 : f.y) * height;
-    const x = clamp(targetX + (useLeft ? -32 : 32),22,width-22);
-    const originalY = clamp(targetY,22,height-22);
-    let y = originalY;
-    const collides = n => placements.some(p => Math.abs(p.x-x)<44 && Math.abs(p.y-n)<44);
-    for (let step=1;collides(y) && step<findings.length*2+2;step++) {
-      y = clamp(originalY + (step%2 ? 1 : -1) * Math.ceil(step/2)*44,22,height-22);
-    }
-    placements.push({finding:f,number:findingNumber(findings,f.id),x,y,targetX,targetY});
-  }
-  return placements;
+  return findings.filter(f=>f.pageIndex===page && located(f)).sort((a,b)=>a.y-b.y || a.x-b.x).map(f=>({
+    finding:f, number:findingNumber(findings,f.id), x:f.x*width, y:f.y*height, targetX:f.x*width, targetY:f.y*height,
+  }));
 }
-export function markerMarkup(placements, active, noteOpen=true) {
-  return placements.map(({finding:f,number,x,y,targetX,targetY}) => {
-    const angle=Math.atan2(targetY-y,targetX-x), length=Math.max(0,Math.hypot(x-targetX,y-targetY)-10);
-    return `<span class="annotation-leader ${active===f.id?'selected':''}" aria-hidden="true" style="left:${x+Math.cos(angle)*10}px;top:${y+Math.sin(angle)*10}px;width:${length}px;transform:rotate(${angle*180/Math.PI}deg)"></span><button class="paper-marker ${active===f.id?'selected':''}" style="left:${x}px;top:${y}px" data-marker="${esc(f.id)}" aria-label="Feedback ${number}: ${esc(f.category)}: ${esc(locationLabel(f))}" aria-pressed="${active===f.id}" aria-expanded="${active===f.id&&noteOpen}" aria-controls="pdf-annotation-note"><span aria-hidden="true">${number}</span></button>`;
+export function layoutCallouts(placements, pageWidth, pageHeight, heights={}) {
+  let bottom=0;
+  const cards=placements.map(p=>{
+    const height=Math.max(70,heights[p.finding.id] || 140);
+    const top=Math.max(12,p.targetY-24,bottom+12);
+    bottom=top+height;
+    return {...p,left:pageWidth+28,top,width:236,height};
+  });
+  return {cards,width:pageWidth+(cards.length?276:0),height:Math.max(pageHeight,bottom+12)};
+}
+export function markerMarkup(placements, active) {
+  return placements.map(({finding:f,number,x,y})=>`<button class="paper-marker ${active===f.id?'selected':''}" style="left:${x}px;top:${y}px" data-marker="${esc(f.id)}" aria-label="Hint ${number}: ${esc(locationLabel(f))}" aria-pressed="${active===f.id}" aria-controls="pdf-hint-${number}"><span aria-hidden="true"></span></button>`).join('');
+}
+export function calloutMarkup(layout, active) {
+  const lines=layout.cards.map(p=>`<polyline class="hint-connector ${active===p.finding.id?'selected':''}" data-connector="${esc(p.finding.id)}" points="${p.targetX},${p.targetY} ${p.left-14},${p.targetY} ${p.left},${p.top+24}"/>`).join('');
+  const notes=layout.cards.map(p=>{
+    const f=p.finding;
+    const context=f.kind==='work'?'The circle locates related work, not an incorrect symbol.':f.kind==='part'?'The circle locates this part; an exact mistaken line has not been identified.':'';
+    return `<section class="pdf-hint-box ${active===f.id?'selected':''}" id="pdf-hint-${p.number}" data-hint="${esc(f.id)}" role="region" aria-label="Hint ${p.number}" style="left:${p.left}px;top:${p.top}px;width:${p.width}px"><button type="button" class="hint-heading" data-marker="${esc(f.id)}" aria-pressed="${active===f.id}" aria-label="Locate hint ${p.number}"><span class="hint-number">${p.number}</span>${Number.isFinite(f.deduction)&&f.deduction>=0?`<span class="hint-deduction" aria-label="Estimated deduction: ${f.deduction}"><span>Estimated deduction</span>−${f.deduction}</span>`:''}</button><p>${esc(studentHint(f.message))}</p><small>${esc(locationLabel(f))}</small>${context?`<small>${context}</small>`:''}</section>`;
   }).join('');
+  return `<svg class="hint-connectors" width="${layout.width}" height="${layout.height}" aria-hidden="true">${lines}</svg>${notes}`;
 }
-export function detailMarkup(f, placement, width, height) {
-  if (!f || !placement) return {highlights:'', note:''};
+export function detailMarkup(f, placement) {
+  if(!f || !placement)return {highlights:'',note:''};
   const boxes=(Array.isArray(f.boxes)?f.boxes:[]).filter(validBox);
-  const highlights=boxes.map(b=>`<span class="annotation-highlight ${f.kind==='line'?'line':'context'}" style="left:${b.x*100}%;top:${b.y*100}%;width:${b.width*100}%;height:${b.height*100}%"></span>`).join('');
-  const cardWidth=Math.min(280,width-24), left=clamp(placement.x-cardWidth,12,width-cardWidth-12);
-  const flip=placement.y+220>height;
-  const top=flip?Math.max(12,placement.y-24):placement.y+26;
-  const note=`<section class="pdf-annotation-note ${flip?'above':''}" id="pdf-annotation-note" role="region" aria-label="PDF feedback ${placement.number}" style="left:${left}px;top:${top}px;width:${cardWidth}px"><header><span class="annotation-note-label">Feedback ${placement.number} · ${esc(locationLabel(f))}</span><button type="button" class="annotation-close" data-annotation-close aria-label="Close PDF feedback">×</button></header><h3>${esc(f.category)}</h3><p>${esc(f.message)}</p>${f.kind!=='line'?`<small>${f.kind==='work'?'Marked area shows the related work, not an incorrect symbol.':'The part is located; an exact mistaken line has not been identified.'}</small>`:''}</section>`;
-  return {highlights,note};
+  return {highlights:boxes.map(b=>`<span class="annotation-highlight ${f.kind==='line'?'line':'context'}" style="left:${b.x*100}%;top:${b.y*100}%;width:${b.width*100}%;height:${b.height*100}%"></span>`).join(''),note:''};
 }
