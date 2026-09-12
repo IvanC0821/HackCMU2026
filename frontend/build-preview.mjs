@@ -11,4 +11,4 @@ const html = source.replace('<link rel="stylesheet" href="./staff/styles.css">',
   .replace('<script type="module" src="./staff/app.mjs"></script>', '')
   .replace('</body>', () => `<script>(() => {\n${js.replace(/<\/script/gi, '<\\/script')}\n})();</script>\n</body>`);
 await writeFile(new URL('preview.html', import.meta.url), html);
-console.log('Created frontend/preview.html. Homework 1 → Grading standards → Use sample materials → Finalize → Student revision.');
+console.log('Created frontend/preview.html. Homework 1 → Grading standards → Files & settings → More options → Use sample materials → Finalize → Student revision.');

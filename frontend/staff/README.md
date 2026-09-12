@@ -24,7 +24,7 @@ over localhost for the PDF canvas; browsers restrict PDF.js modules on file URLs
 
 ## Rehearse
 
-1. Homework 1 → Grading standards → Use sample materials.
+1. Homework 1 → Grading standards → Files & settings → More options → Use sample materials.
 2. Open reference PDFs. Review the question, alternatives, and 10-point rubric.
 3. Finalize grading standard. Open Student revision in the walkthrough bar.
 4. Incomplete work → Check my work. The matrix checker reports missing work, 8/10.
@@ -101,8 +101,8 @@ pages before using the PDF assets. PDF source data comes from the same case modu
 ## Rubric authoring and answer excerpts
 
 Open **Grading standards**. The solution PDF stays on the left while the right
-panel switches between **Questions & deductions** and **Reference PDFs**. Add a
-question, edit its requirements and scoring outcomes, and select **Crop answer**.
+panel switches between **Rubric** and **Files & settings**. Add a
+question, edit its requirements and scoring outcomes, and open **PDF reference → Crop answer from PDF**.
 Drag across the PDF, name the excerpt, and select **Save answer crop**. The percent
 bounds offer a keyboard alternative to dragging. Escape cancels an unsaved crop.
 
@@ -130,3 +130,5 @@ overflow. No Supabase or external AI calls are made by this test.
 
 The layout follows [Gradescope's question-focused PDF/rubric workflow](https://guides.gradescope.com/hc/en-us/articles/22249389005709-Grading-submissions-with-rubrics),
 with solution excerpts kept separate from student page assignments.
+
+The rubric editor opens in a focused layout: brief question description, point total, and compact rubric items. Expand an item's **Deductions** to edit outcomes; open **PDF reference** for crops and page mapping, or **Question settings** for additional guidance. **Files & settings** holds uploads and optional setup. New questions start on assignment page 1 and the currently viewed solution page; their description supplies expected work until separate guidance is entered.

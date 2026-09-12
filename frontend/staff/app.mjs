@@ -13,7 +13,7 @@ const appRoot = document.querySelector('#app'), dialog = document.querySelector(
 const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
-  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null,
+  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {},
   caseVariant: 'incomplete', caseJSON: JSON.stringify(caseWork.incomplete, null, 2), initializing: true};
 let channel, renderCycle = 0;
 try { channel = new BroadcastChannel('verity-staff-mvp'); } catch { /* Optional same-origin cross-tab notification. */ }
@@ -133,8 +133,8 @@ document.addEventListener('click', async event => {
       submitCaseFinal(state); ui.message = 'Final demo version submitted. Your TA can now complete the review.';
     }
     if (action === 'reopen-case') { reopenCaseSubmission(state); ui.message = 'Demo submission reopened for another rehearsal. Earlier work is preserved.'; }
-    if (action === 'publish') { const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
-    if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; ui.setupTab = 'rubric'; }
+    if (action === 'publish') { for (const q of state.draft) if ((q.solutionCrops || []).some(c => c.documentId !== state.documents.solution?.id || c.page > state.documents.solution?.pageCount)) ui.disclosures[`refs-${q.id}`] = true; const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
+    if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; ui.setupTab = 'rubric'; const q = state.draft[ui.editQ]; q.assignmentPages = [1]; q.solutionPages = [ui.setupDoc === 'solution' ? ui.setupPage : 1]; }
     if (action === 'add-criterion') { addCriterion(state.draft[Number(button.dataset.q)]); state.dirty = true; touch(state); }
     if (action === 'remove-criterion') { state.draft[Number(button.dataset.q)].criteria.splice(Number(button.dataset.c), 1); state.dirty = true; touch(state); }
     if (action === 'add-band') {
@@ -176,7 +176,7 @@ document.addEventListener('click', async event => {
     }
     if (!navigation.includes(action)) {
       render(); const shownCycle = renderCycle;
-      if (action === 'add-question') document.querySelector(`[data-edit="question"][data-q="${ui.editQ}"][data-field="title"]`)?.focus();
+      if (action === 'add-question') document.querySelector(`[data-edit="question"][data-q="${ui.editQ}"][data-field="prompt"]`)?.focus();
       if (action === 'add-criterion') document.querySelector(`[data-edit="criterion"][data-q="${button.dataset.q}"][data-c="${state.draft[Number(button.dataset.q)].criteria.length-1}"][data-field="label"]`)?.focus();
       await save();
       if (shownCycle !== renderCycle || document.activeElement?.matches('input, textarea, select')) return;
@@ -235,7 +235,11 @@ document.addEventListener('change', async event => {
         const old = target.max; target.max = input.value === '' ? NaN : Number(input.value);
         target.bands.filter(b => b.points === old).forEach(b => { b.points = target.max; });
       } else if (field === 'deduction') target.points = input.value === '' ? NaN : Math.round((q.criteria[ci].max - Number(input.value)) * 100) / 100;
-      else target[field] = ['assignmentPages', 'solutionPages'].includes(field) ? parsePageList(input.value) : input.value;
+      else {
+        // A brief description is sufficient unless staff provide separate guidance.
+        if (input.dataset.edit === 'question' && field === 'prompt' && (!q.expected || q.expected === q.prompt)) q.expected = input.value;
+        target[field] = ['assignmentPages', 'solutionPages'].includes(field) ? parsePageList(input.value) : input.value;
+      }
       state.dirty = true; touch(state);
     }
     if (input.dataset.file) {
@@ -255,6 +259,7 @@ document.addEventListener('change', async event => {
     }
     await save();
     if (input.dataset.edit || input.id === 'instructions' || input.id === 'announcement-draft') {
+      const total = document.querySelector('[data-question-total]'); if (total) total.textContent = `${state.draft[ui.editQ].criteria.reduce((n,c) => n + c.max, 0)} pts`;
       const publish = document.querySelector('[data-action="publish"]'); if (publish) publish.disabled = false;
       const status = document.querySelector('.setup-footer>span'); if (status) status.textContent = 'Draft changes not finalized';
       const copy = document.querySelector('[data-action="copy"]'); if (copy) copy.disabled = !state.announcement;
@@ -279,7 +284,7 @@ document.addEventListener('submit', async event => {
         id: ui.cropSelection.id, page: ui.setupPage, label: form.elements.label.value,
         rect: [0,1,2,3].map(i => Number(form.elements[`bound${i}`].value)/100),
       });
-      ui.cropSelection = null; state.dirty = true; touch(state); ui.message = 'Answer crop saved to this question. It will be included when you finalize the standard.';
+      ui.cropSelection = null; state.dirty = true; touch(state); ui.message = 'Answer crop saved.';
     }
     if (form.id === 'case-appeal') { appealCase(state, form.elements.message.value); ui.message = 'Dispute added to the TA review queue. No email or external message was sent.'; }
     if (form.matches('.decision-form')) {
@@ -311,6 +316,10 @@ document.addEventListener('submit', async event => {
   } catch (error) { ui.error = error.name === 'AbortError' ? 'Stopped waiting. Existing API work was not deleted.' : error.message; }
   render(); announce(ui.error || ui.message);
 });
+document.addEventListener('toggle', event => {
+  const key = event.target.dataset?.disclosure;
+  if (key && event.target.isConnected) ui.disclosures[key] = event.target.open;
+}, true);
 document.addEventListener('keydown', event => {
   const tab = event.target.closest?.('[role="tab"][data-tab]');
   if (tab && ['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) {

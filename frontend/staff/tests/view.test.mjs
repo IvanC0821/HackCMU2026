@@ -7,7 +7,7 @@ function fixture() {const s = newWorkspace(); loadSampleRubric(s); publishDraft(
 test('all routes render semantic navigation and no unchecked chart on empty setup', () => {
   const s = newWorkspace();
   for (const route of ['home','standards','dashboard','submissions','activity','review']) {
-    const html = renderWorkspace(s, {...baseUI, route}); assert.match(html, /<main id="main"/); assert.match(html, /aria-label="Courses"/);
+    const html = renderWorkspace(s, {...baseUI, route}); assert.match(html, /<main id="main"/); if (route !== 'standards') assert.match(html, /aria-label="Courses"/);
   }
   assert.doesNotMatch(renderWorkspace(s, {...baseUI, route:'dashboard'}), /<svg class="question-chart"/);
   assert.equal(routeFrom('#/homework/1/review/demo-1'),'review');
