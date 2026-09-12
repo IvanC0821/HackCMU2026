@@ -1,0 +1,8 @@
+{
+  "criteria": [
+    {"id":"base_case","question_id":"q1","requirement":"Verify the base case n=1.","max_points":"2.00","bands":[{"id":"correct","description":"Base case is correctly established.","points":"2.00"},{"id":"missing","description":"Base case missing or incorrect.","points":"0.00"}],"concept_ids":["induction"],"source_refs":[]},
+    {"id":"inductive_step","question_id":"q1","requirement":"State the hypothesis for arbitrary k and prove the k+1 case without assuming the conclusion.","max_points":"8.00","bands":[{"id":"correct","description":"Valid induction or another complete valid proof.","points":"8.00"},{"id":"partial","description":"Sound method with an execution error.","points":"5.00"},{"id":"circular","description":"The conclusion is assumed rather than established.","points":"0.00"}],"concept_ids":["induction"],"source_refs":[]}
+  ],
+  "patterns":[{"id":"circular_induction","concept_id":"induction","criterion_ids":["inductive_step"],"category":"conceptual","definition":"The proof assumes the k+1 claim to establish that same claim.","exclusions":"Do not apply to a sign slip, omitted simplification, or a valid alternative proof.","hints":[{"level":0,"text":"Revisit the marked step."},{"level":1,"text":"Consider the role of the inductive hypothesis."},{"level":2,"text":"Separate what you may assume for k from what you must establish for k+1."},{"level":3,"text":"Assume the statement only for k, then add the next term to both sides."},{"level":4,"text":"For the sum of the first n integers: start from k(k+1)/2, add k+1, and factor to obtain (k+1)(k+2)/2."}]}],
+  "standards":["Accept correct alternative proof methods. Classify observed reasoning, not the student's ability."]
+}
