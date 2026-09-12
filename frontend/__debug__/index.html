@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <!-- TODO: Replace the temporary Verity name before launch. -->
+  <title>Verity API debug</title>
+</head>
+<body>
+  <h1>API debug</h1>
+  <p>Choose a preset, edit the request, and send. The API enforces permissions. Tokens stay in this page’s memory until you clear or reload it.</p>
+
+  <fieldset>
+    <legend>Connection</legend>
+    <p><label>API origin <input id="api-origin" type="url" value="http://localhost:8000" size="40" spellcheck="false"></label></p>
+    <p><label>Staff token <input id="staff-token" type="password" size="60" autocomplete="off"></label></p>
+    <p><label>Student token <input id="student-token" type="password" size="60" autocomplete="off"></label></p>
+    <p><label>Send as <select id="identity"><option value="staff">Staff</option><option value="student">Student</option></select></label>
+      <button id="clear" type="button">Clear tokens and output</button></p>
+  </fieldset>
+
+  <details>
+    <summary>Resource IDs (filled from successful responses; editable)</summary>
+    <p><label>Course <input id="course-id" size="40"></label></p>
+    <p><label>Student user <input id="student-id" size="40"></label></p>
+    <p><label>Assignment <input id="assignment-id" size="40"></label></p>
+    <p><label>Answer key document <input id="answer-key-id" size="40"></label></p>
+    <p><label>Document <input id="document-id" size="40"></label></p>
+    <p><label>Rubric <input id="rubric-id" size="40"></label></p>
+    <p><label>Submission <input id="submission-id" size="40"></label></p>
+    <p><label>Assessment <input id="assessment-id" size="40"></label></p>
+    <p><label>Finding <input id="finding-id" size="40"></label></p>
+    <p><label>Evidence region <input id="region-id" size="40"></label></p>
+    <p><label>Job <input id="job-id" size="40"></label></p>
+    <p><label>Assessment version <input id="assessment-version" type="number" min="1" value="1"></label></p>
+    <p><label>Finding version <input id="finding-version" type="number" min="1" value="1"></label></p>
+  </details>
+
+  <h2>Input</h2>
+  <p><label>Preset <select id="preset"></select></label>
+    <button id="load" type="button">Load preset</button></p>
+  <p id="preset-help"></p>
+  <form id="request-form">
+    <p><label>Method <select id="method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option></select></label>
+      <label>Path <input id="path" value="/api/v1/me" size="80" spellcheck="false" required></label></p>
+    <p><label>Body format <select id="body-format"><option value="json">JSON</option><option value="pdf">PDF upload (multipart file)</option><option value="none">None</option></select></label></p>
+    <p><label>JSON body<br><textarea id="body" rows="15" cols="100" spellcheck="false" aria-label="JSON body"></textarea></label></p>
+    <p><label>PDF file <input id="pdf-file" type="file" accept="application/pdf,.pdf"></label></p>
+    <p><label>Idempotency-Key <input id="idempotency-key" size="50" spellcheck="false"></label>
+      <button id="new-key" type="button">New key</button></p>
+    <p>Keep the key when retrying the same request. Use a new key when the request changes.</p>
+    <p><button id="send" type="submit">Send request</button>
+      <button id="watch" type="button">Watch job</button>
+      <button id="stop" type="button" disabled>Stop waiting</button></p>
+  </form>
+
+  <h2>Output</h2>
+  <p id="status" role="status" aria-live="polite">No request sent.</p>
+  <pre id="request-info"></pre>
+  <pre id="output" tabindex="0"></pre>
+  <p><a id="download" hidden>Download response</a></p>
+  <img id="image" hidden alt="API page image">
+  <noscript>Enable JavaScript to send requests.</noscript>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
