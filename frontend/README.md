@@ -1,4 +1,27 @@
-# Debug frontend
+# Classroom frontend
+
+The root page is the Gradescope-inspired classroom prototype: course dashboard,
+assignment table, and a document review workspace with rubric and student feedback.
+It uses the supplied screenshots for layout and Lato as an approximate font match.
+The original font was not verified. A system sans-serif fallback works offline.
+
+From this checkout's `backend/`, launch the existing isolated sample server. Open
+`http://localhost:3000/`, then Sample classroom → Induction homework → Run sample
+grading. Teacher approval remains a separate explicit action. This is fixed manual
+sample grading, not AI inference; no real student data is included. The two views
+are a demo control, not a production authentication system.
+
+For an offline visual preview, run `npm run build` in `frontend/` and open
+`preview.html`. Choose **Preview feedback** in submission review. This route does
+not save or approve grades. Added courses are preview-only and reset on refresh.
+The paper is an accessible HTML transcription of the existing one-page fictional
+PDF; Download original retrieves that PDF. This is not a general PDF renderer.
+
+The debug console is still available at `/__debug__/` as documented below.
+
+Design context: [[Frontend Design Toolbox]] (vault reference).
+
+## Debug frontend
 
 <!-- TODO: Replace temporary Verity branding before launch. -->
 

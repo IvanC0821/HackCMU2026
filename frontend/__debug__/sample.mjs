@@ -4,9 +4,9 @@ function pdfFile(encoded, name) {
   return new File([Uint8Array.from(atob(encoded), c => c.charCodeAt(0))], name, {type: 'application/pdf'});
 }
 
-export async function runSample({signal, onStep, onSession, onResponse}) {
+export async function runSample({signal, onStep, onSession, onResponse, sessionUrl = './session'}) {
   onStep('Loading the sample files and classroom…');
-  const sessionResponse = await fetch('./session', {method: 'POST', headers: {'Content-Type': 'application/json'},
+  const sessionResponse = await fetch(sessionUrl, {method: 'POST', headers: {'Content-Type': 'application/json'},
     body: '{}', credentials: 'omit', cache: 'no-store', redirect: 'error', signal});
   if (!sessionResponse.ok) throw new Error('Sample mode needs the local demo server. Start it with: cd backend && uv run python -m scripts.debug_server');
   const seed = await sessionResponse.json();
