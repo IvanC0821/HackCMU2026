@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,8 +18,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-6-astra"
     openai_reasoning_effort: str = "high"
-    mathpix_app_id: str = ""
-    mathpix_app_key: str = ""
+    zai_api_key: str = ""
+    glm_ocr_bbox_format: Literal["normalized", "pixels"] = "normalized"
     jwt_issuer: str = ""
     jwt_audience: str = ""
     jwt_jwks_url: str = ""

@@ -89,7 +89,7 @@ backend/
   verity/pdf.py                 PDF validation, extraction, rendering and geometry
   verity/storage.py             private local/S3 document storage
   verity/grading.py             rubric validation, scoring, findings and audit
-  verity/providers.py           OpenAI/Mathpix adapters and prompt versions
+  verity/providers.py           OpenAI/GLM-OCR adapters and prompt versions
   verity/feedback.py            hint preparation, caching and issuance
   verity/jobs.py                durable job creation, claiming and processing
   verity/analytics.py           SQL coverage and distinct-student reports
@@ -120,7 +120,7 @@ flowchart LR
     Worker --> Parse[Parse documents and rubric]
     Parse --> Identify[Identify criterion outcomes and findings]
     Identify --> Respond[Prepare permitted hints]
-    Parse -. optional .-> OCR[Mathpix]
+    Parse -. optional .-> OCR[Hosted GLM-OCR]
     Identify -. optional .-> Model[Configured OpenAI model]
     Respond -. optional .-> Model
     Worker --> DB
@@ -151,7 +151,7 @@ rationale. There is no independent reviewer-model loop.
 - A browser. The debug frontend itself only needs Python's static HTTP server.
 - Node/npm and installed Google Chrome only if running frontend automated tests.
 - Docker is optional for the local Postgres/API/worker setup.
-- OpenAI and Mathpix credentials are optional; the manual workflow uses neither.
+- OpenAI and Z.ai credentials are optional; the manual workflow uses neither.
 
 ### Backend, identities and frontend
 
@@ -363,8 +363,9 @@ identity is insufficient.
 
 Page metadata includes crop box, original rotation, rotation/derotation matrices,
 render scale, and page-to-image/inverse transforms. Preview PNGs are unrotated and
-rendered at 1.5×. Native text retains step and character geometry. OCR retains line
-polygons and confidence and is currently step-level, not precise symbol localization.
+rendered at 1.5×. Native text retains step and character geometry. GLM-OCR retains provider
+boxes and transforms with unknown confidence. Its block anchors use the existing
+step-level API and do not provide precise symbol localization.
 The model chooses evidence IDs; code computes the pin from their geometry.
 
 For several questions, staff must map each question before AI assessment. Manual
@@ -372,8 +373,16 @@ boxes can represent scanned answers without transcription. Once assessment creat
 begins, the region map is pinned. PostgreSQL row locks serialize mapping changes
 against job creation. Evidence from another document or mapped question is rejected.
 
-Mathpix auto-rotation is disabled so the saved transform remains applicable; unexpected
-rotation is rejected. The backend sends `improve_mathpix: false`. A native-text page
+Hosted GLM-OCR receives one unrotated PNG per page via a private base64 request.
+`GLM_OCR_BBOX_FORMAT=normalized` follows the Z.ai API reference (0–1 coordinates).
+Some SDK versions describe pixel coordinates: use `pixels` only when confirmed
+for your deployment; returned page dimensions are then required. The adapter never
+guesses units. Invalid boxes, reported rotations and aspect-ratio changes fail the
+job rather than placing misleading pins. Actual PNG dimensions and the saved
+inverse transform account for rendering roundoff, crop boxes and PDF rotation.
+Provider token counts are retained in region evidence (repeated per block: do not
+sum blocks to estimate billing). Crop images and visualizations are disabled.
+No provider zero-retention guarantee is implied. A native-text page
 may still contain handwriting, so OCR is an explicit assignment setting, not inferred
 from whether any selectable text exists. No claim of perfect handwriting recognition
 or automatic symbol targeting is made.
@@ -447,7 +456,8 @@ settings. Frontend connection values are page inputs, not environment secrets.
 | `OPENAI_API_KEY` | Server-only API key; empty by default |
 | `OPENAI_MODEL` | Configured Responses model; default `gpt-6-astra` |
 | `OPENAI_REASONING_EFFORT` | `high` |
-| `MATHPIX_APP_ID`, `MATHPIX_APP_KEY` | Optional handwriting OCR credentials |
+| `ZAI_API_KEY` | Optional hosted GLM-OCR credential |
+| `GLM_OCR_BBOX_FORMAT` | `normalized` (default) or `pixels`; see geometry notes |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URL` | Configure together for verified external RS256 tokens |
 | `LOCAL_TOKENS_ENABLED` | `true`; disable only after external auth is configured |
 | `MAX_PDF_PAGES` | `10` |
@@ -456,7 +466,12 @@ settings. Frontend connection values are page inputs, not environment secrets.
 
 To enable AI, set the global switch and OpenAI credential, choose a compatible model
 available to the account, and enable the assignment's `external_ai_allowed`. OCR
-also requires its credentials and `ocr_enabled`. Generated hints additionally require
+also requires `ZAI_API_KEY` and `ocr_enabled: true`. It uses the hosted
+[Z.ai layout API](https://docs.z.ai/api-reference/tools/layout-parsing), with no
+local model or GPU dependency. Restart the API and worker after changing settings.
+Completed OCR is reused, including historical provider evidence; old assessments
+are not rewritten. Failed jobs can be explicitly retried and may incur new charges.
+There is no automatic OCR retry or paid-provider fallback. Generated hints additionally require
 `feedback_policy.allow_generated`. These permissions are independent.
 
 The configured OpenAI adapter uses Responses structured output, image input, bounded
@@ -544,10 +559,12 @@ adapters; they are not a mathematical-quality evaluation of live model judgments
 | 413 | PDF exceeds configured upload bytes |
 | 422 | Invalid PDF/schema, unknown IDs/bands, missing criterion coverage, invalid anchor or missing question mapping |
 | 503 `external_ai_disabled` | Both global and assignment AI switches must permit the operation |
-| `openai_not_configured` / `mathpix_not_configured` | Missing required server credentials |
+| `openai_not_configured` / `glm_ocr_not_configured` | Missing required server credentials |
 | Job stays queued | Start the separate worker against the same database/environment |
 | `worker_lease_expired` | Worker stopped or exceeded its claim; inspect service state, then explicitly retry |
 | `model_request_failed` / `ocr_request_failed` | Provider credentials/access, request compatibility, connectivity, limits or timeout |
+| `ocr_invalid_geometry` | Check the configured box format against the actual provider response; inconsistent geometry is rejected |
+| `ocr_invalid_response` / `ocr_image_too_large` | Missing usable layout or rendered page above the 10 MiB provider limit |
 | `pending_anchor` | Supply a valid manual point/evidence or dismiss after review; no precise location was established |
 | Blank student score field | Proposal not finalized, score display disabled, or uncertain assessment |
 | Finalization fails after a finding edit | Read the assessment again and use its updated version |
