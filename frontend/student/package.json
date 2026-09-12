@@ -1,0 +1,15 @@
+{
+  "name": "verity-student",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs",
+    "fixtures": "node tools/generate-sample.mjs",
+    "test": "node --test tests/model.test.mjs"
+  },
+  "dependencies": {
+    "@fontsource/lato": "5.3.0",
+    "pdfjs-dist": "6.3.289",
+    "pdf-lib": "1.17.1"
+  }
+}

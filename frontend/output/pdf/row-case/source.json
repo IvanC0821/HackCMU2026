@@ -1,0 +1,224 @@
+{
+  "question": "Solve 2x + y = 5 and x − y = 1 using row reduction. Show the intermediate operations.",
+  "cases": {
+    "incomplete": {
+      "matrices": [
+        [
+          [
+            2,
+            1,
+            5
+          ],
+          [
+            1,
+            -1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            0,
+            2
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ]
+      ],
+      "operations": [
+        null
+      ],
+      "solution": [
+        2,
+        1
+      ]
+    },
+    "corrected": {
+      "matrices": [
+        [
+          [
+            2,
+            1,
+            5
+          ],
+          [
+            1,
+            -1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            -1,
+            1
+          ],
+          [
+            2,
+            1,
+            5
+          ]
+        ],
+        [
+          [
+            1,
+            -1,
+            1
+          ],
+          [
+            0,
+            3,
+            3
+          ]
+        ],
+        [
+          [
+            1,
+            -1,
+            1
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            0,
+            2
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ]
+      ],
+      "operations": [
+        {
+          "type": "swap",
+          "target": 0,
+          "source": 1
+        },
+        {
+          "type": "add",
+          "target": 1,
+          "source": 0,
+          "factor": -2
+        },
+        {
+          "type": "scale",
+          "target": 1,
+          "factor": "1/3"
+        },
+        {
+          "type": "add",
+          "target": 0,
+          "source": 1,
+          "factor": 1
+        }
+      ],
+      "solution": [
+        2,
+        1
+      ]
+    },
+    "alternative": {
+      "matrices": [
+        [
+          [
+            2,
+            1,
+            5
+          ],
+          [
+            1,
+            -1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            "1/2",
+            "5/2"
+          ],
+          [
+            1,
+            -1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            "1/2",
+            "5/2"
+          ],
+          [
+            0,
+            "-3/2",
+            "-3/2"
+          ]
+        ],
+        [
+          [
+            1,
+            "1/2",
+            "5/2"
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            0,
+            2
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ]
+      ],
+      "operations": [
+        {
+          "type": "scale",
+          "target": 0,
+          "factor": "1/2"
+        },
+        {
+          "type": "add",
+          "target": 1,
+          "source": 0,
+          "factor": -1
+        },
+        {
+          "type": "scale",
+          "target": 1,
+          "factor": "-2/3"
+        },
+        {
+          "type": "add",
+          "target": 0,
+          "source": 1,
+          "factor": "-1/2"
+        }
+      ],
+      "solution": [
+        2,
+        1
+      ]
+    }
+  }
+}
