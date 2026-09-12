@@ -9,6 +9,7 @@ Read this before touching the repo. It exists so several agents (human or AI) ca
 3. **Contracts before code.** Anything two areas share (API routes, data shapes, env vars, event names) is written in `docs/contracts.md` first. Change the contract in a PR, then change the code.
 4. **Small, frequent commits.** Push at least every 30 minutes during the hack. A branch that hasn't pushed in an hour is assumed dead.
 5. **Rebase, don't merge, when syncing with `main`.** `git fetch origin && git rebase origin/main`. Resolve conflicts on your branch, never on `main`.
+6. **Commit and publish every completed task.** For all future work in this repository, use a task branch, commit all changes you make for the task, and push that branch to `origin` before handing the work back. This includes documentation and configuration changes. The user has authorized this routine branch/commit/push workflow; no additional confirmation is needed. Keep secrets and unrelated user changes out of commits. If publishing fails, report the blocker and what remains local. Report the branch and commit in the handoff. Publication does not authorize merging into `main`; use the PR workflow below.
 
 ## Branch naming
 
