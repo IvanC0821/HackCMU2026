@@ -111,7 +111,7 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 | AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY | Optional S3 credentials; SDK credential chain supported |
 | CORS_ORIGINS | JSON array, localhost:3000 default |
 | EXTERNAL_AI_ENABLED | false; global external-call switch |
-| OPENAI_API_KEY, OPENAI_MODEL | Server key; configurable model, gpt-6-astra default |
+| OPENAI_API_KEY, OPENAI_MODEL | Server key; configurable model, gpt-5.4 default |
 | OPENAI_REASONING_EFFORT | high |
 | ZAI_API_KEY | Optional hosted GLM-OCR credential; server only |
 | GLM_OCR_BBOX_FORMAT | `pixels` (default, confirmed by live hosted API; provider page dimensions required) or `normalized` (0–1); never auto-detected |
