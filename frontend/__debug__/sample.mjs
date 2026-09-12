@@ -32,6 +32,8 @@ export async function runSample({signal, onStep, onSession, onResponse, sessionU
     title: 'Sample induction homework', questions: [{id: 'q1', prompt: 'Prove that 1 + 2 + ... + n = n(n + 1) / 2.'}],
     material_document_ids: [key.id], external_ai_allowed: false, feedback_policy: {max_disclosure_level: 2, release_level: 2}});
   const rubric = await request('staff', 'POST', `/api/v1/assignments/${assignment.id}/rubric-versions`, seed.rubric);
+  const hints = await request('staff', 'GET', `/api/v1/rubric-versions/${rubric.id}/hint-bank`);
+  await request('staff', 'POST', `/api/v1/rubric-versions/${rubric.id}/hint-bank:approve`, {expected_version: hints.version});
   await request('staff', 'POST', `/api/v1/rubric-versions/${rubric.id}:publish`);
   onStep('Uploading the sample homework and applying the example grading…');
   const doc = await request('student', 'POST', `/api/v1/documents?course_id=${course.id}&kind=submission`, undefined,

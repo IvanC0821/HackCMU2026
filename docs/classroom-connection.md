@@ -105,3 +105,16 @@ grading correctness. See [OpenAI Structured Outputs](https://developers.openai.c
 Existing `RubricSpec` fields hold readable requirements, bands, sources, pattern
 definitions/exclusions and proposed policies. Full worked-solution hint ladders are
 excluded from this generation request. Staff must inspect the draft before publishing.
+
+
+### Prepared hints
+
+The adapter now supports setup-time hint banks shared with the core backend. Saving
+criteria prepares an editable bank; new publications require professor approval. Published
+versions snapshot the approved entries. Student projections select a level-2-or-lower hint
+for each selected below-full-credit criterion, without any generation call or private
+rubric fields. Existing published versions keep generic feedback until republished.
+`--ai-hints` enables generation with attached blank, solution and past graded example PDFs.
+The default keeps AI off and prepares editable conservative templates. A 30-second delay
+coalesces setup edits; stale drafts do not invoke the model. Approval/edit APIs use separate
+bank versions so workspace saves cannot forge approval or overwrite edits.

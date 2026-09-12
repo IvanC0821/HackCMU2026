@@ -49,6 +49,9 @@ def create_rubric(db, assignment, spec, actor_id, source="manual", provenance=No
     db.add(rubric)
     db.flush()
     audit(db, actor_id, rubric, "rubric.created", rubric.provenance)
+    from .hint_banks import core_bank
+
+    core_bank(db, assignment, rubric, actor_id)
     return rubric
 
 

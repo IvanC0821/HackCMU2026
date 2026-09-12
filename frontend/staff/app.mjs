@@ -1,9 +1,10 @@
 import {putSolutionCrop, validCropRect} from './solution-crops.mjs';
 import {renderRubricPDFs, attachCropDrawing, openRubricPDF, releaseRubricPDFs} from './rubric-pdf.mjs';
-import {newWorkspace, STAFF_SCHEMA, activeRubric, loadSampleRubric, publishDraft, addQuestion, addCriterion, seedClass, addSampleRevision, updateOutcome, markSkimmed, completeReview, reopenReview, prepareCurrentReviews, draftAnnouncement, parsePageList, record, touch} from './model.mjs';
+import {attachHintReview} from '../connected/hints.mjs';
+import {newWorkspace, STAFF_SCHEMA, activeRubric, validateDraft, loadSampleRubric, publishDraft, addQuestion, addCriterion, seedClass, addSampleRevision, updateOutcome, markSkimmed, completeReview, reopenReview, prepareCurrentReviews, draftAnnouncement, parsePageList, record, touch} from './model.mjs';
 import {renderWorkspace, routeFrom, escapeHTML} from './view.mjs';
 import {openStore} from './storage.mjs';
-import {connected, openRemoteStore, addSignOut} from '../connected/client.mjs';
+import {connected, openRemoteStore, addSignOut, json} from '../connected/client.mjs';
 import {apiRequest, generateApiDraft} from './api.mjs';
 import {generateConnectedDraft} from '../connected/rubrics.mjs';
 import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, appealCase} from './case.mjs';
@@ -13,7 +14,7 @@ const appRoot = document.querySelector('#app'), dialog = document.querySelector(
 const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
-  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {}, selectedDeduction: null,
+  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {}, selectedDeductions: new Set(),
   caseVariant: 'incomplete', caseJSON: JSON.stringify(caseWork.incomplete, null, 2), initializing: true};
 let channel, renderCycle = 0;
 try { channel = new BroadcastChannel('verity-staff-mvp'); } catch { /* Optional same-origin cross-tab notification. */ }
@@ -50,6 +51,7 @@ function render(focus = false) {
       ui.cropSelection.rect = rect; render(); announce('Answer region selected. Save the crop or adjust its bounds.');
     });
   }
+  if (connected && ui.route === 'standards') attachHintReview(appRoot, async () => { await saveChain; assertWritable(); }, async () => { state.dirty = true; touch(state); await save(); ui.message = 'Hints approved. Finalize the grading standard to release them.'; render(); });
   if (focus) document.querySelector('#main')?.focus({preventScroll: true});
 }
 function announce(text) { document.querySelector('#announcement').textContent = text; }
@@ -92,9 +94,11 @@ document.addEventListener('click', async event => {
   const deductionRow = event.target.closest('[data-deduction-row]');
   if (deductionRow && !ui.busy) {
     const editing = event.target.closest('input, textarea, label');
-    ui.selectedDeduction = !editing && ui.selectedDeduction === deductionRow.dataset.deductionRow ? null : deductionRow.dataset.deductionRow;
+    const key = deductionRow.dataset.deductionRow;
+    if (!editing && ui.selectedDeductions.has(key)) ui.selectedDeductions.delete(key);
+    else ui.selectedDeductions.add(key);
     for (const row of appRoot.querySelectorAll('[data-deduction-row]')) {
-      const selected = row.dataset.deductionRow === ui.selectedDeduction;
+      const selected = ui.selectedDeductions.has(row.dataset.deductionRow);
       row.classList.toggle('is-selected', selected);
       const marker = row.querySelector('.deduction-marker');
       marker.setAttribute('aria-pressed', String(selected));
@@ -147,7 +151,7 @@ document.addEventListener('click', async event => {
       submitCaseFinal(state); ui.message = 'Final demo version submitted. Your TA can now complete the review.';
     }
     if (action === 'reopen-case') { reopenCaseSubmission(state); ui.message = 'Demo submission reopened for another rehearsal. Earlier work is preserved.'; }
-    if (action === 'publish') { for (const q of state.draft) if ((q.solutionCrops || []).some(c => c.documentId !== state.documents.solution?.id || c.page > state.documents.solution?.pageCount)) ui.disclosures[`refs-${q.id}`] = true; const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
+    if (action === 'publish') { const errors = validateDraft(state); if (errors.length) throw Error(errors.join(' ')); if (connected) { await saveChain; assertWritable(); const bank = await json('/hint-bank'); if (!['approved', 'published'].includes(bank.status)) throw Error('Review and approve the assignment hints before finalizing.'); } for (const q of state.draft) if ((q.solutionCrops || []).some(c => c.documentId !== state.documents.solution?.id || c.page > state.documents.solution?.pageCount)) ui.disclosures[`refs-${q.id}`] = true; const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
     if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; ui.setupTab = 'rubric'; const q = state.draft[ui.editQ]; q.assignmentPages = [1]; q.solutionPages = [ui.setupDoc === 'solution' ? ui.setupPage : 1]; }
     if (action === 'add-criterion') { addCriterion(state.draft[Number(button.dataset.q)]); state.dirty = true; touch(state); }
     if (action === 'remove-criterion') { state.draft[Number(button.dataset.q)].criteria.splice(Number(button.dataset.c), 1); state.dirty = true; touch(state); }

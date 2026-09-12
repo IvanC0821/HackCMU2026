@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     external_ai_enabled: bool = False
     openai_api_key: str = Field(default="", repr=False)
-    openai_model: str = "gpt-6-astra"
+    openai_model: str = "gpt-5.4"
     openai_reasoning_effort: str = "high"
     zai_api_key: str = Field(default="", repr=False)
     glm_ocr_bbox_format: Literal["normalized", "pixels"] = "pixels"

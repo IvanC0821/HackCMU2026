@@ -1,4 +1,4 @@
-from conftest import call, finding_body, manual_assessment
+from conftest import approve_hints, call, finding_body, manual_assessment
 
 from verity import jobs, providers
 from verity.schemas import RubricSpec
@@ -86,5 +86,6 @@ def test_generated_rubric_job_is_a_draft_until_staff_publish(env, homework, monk
     assert done["status"] == "succeeded"
     draft = call(env, "GET", f"/rubric-versions/{done['result_id']}")
     assert draft["status"] == "draft"
+    approve_hints(env, draft["id"])
     published = call(env, "POST", f"/rubric-versions/{draft['id']}:publish")
     assert published["status"] == "published"

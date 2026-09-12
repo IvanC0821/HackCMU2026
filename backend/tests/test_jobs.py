@@ -40,11 +40,6 @@ def stub_assessor(monkeypatch, invalid_evidence=False, uncertain=False):
         )
 
     monkeypatch.setattr(providers, "assess_question", assess)
-    monkeypatch.setattr(
-        providers,
-        "generate_hint",
-        lambda *args: "Check what the inductive hypothesis permits you to assume.",
-    )
 
 
 def start(env, homework, key="ai-1"):

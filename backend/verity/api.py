@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from . import analytics, feedback, jobs, pdf, providers, storage
+from . import analytics, feedback, hint_banks, jobs, pdf, providers, storage
 from .access import (
     assessment_access,
     assignment_access,
@@ -216,6 +216,20 @@ def create_assignment(course_id: str, body: AssignmentIn, db: DB, user: Actor):
     )
     db.add(assignment)
     db.flush()
+    if (
+        body.external_ai_allowed
+        and body.feedback_policy.allow_generated
+        and settings().external_ai_enabled
+    ):
+        job, _ = jobs.enqueue(
+            db,
+            user.id,
+            course_id,
+            "rubric_draft",
+            {"assignment_id": assignment.id, "instructions": ""},
+            f"assignment-setup:{assignment.id}",
+        )
+        assignment.data = {**assignment.data, "setup_job_id": job.id}
     return assignment_view(assignment, "instructor")
 
 
@@ -267,7 +281,7 @@ def upload(
     db: DB,
     user: Actor,
     course_id: str,
-    kind: Literal["assignment", "answer_key", "rubric", "standard", "submission"],
+    kind: Literal["assignment", "answer_key", "rubric", "standard", "graded_example", "submission"],
     file: UploadFile = File(...),
 ):
     found(db, Course, course_id)
@@ -383,6 +397,14 @@ def publish_rubric(rubric_id: str, db: DB, user: Actor):
     assignment, _ = assignment_access(db, user, rubric.assignment_id)
     require_staff(db, user, assignment.course_id, instructor=True)
     if rubric.status == "draft":
+        bank = hint_banks.core_bank(db, assignment, rubric, user.id)
+        if bank.status != "approved":
+            raise HTTPException(
+                409, "Review and approve the assignment hint bank before publishing"
+            )
+        bank.status = "published"
+        bank.version += 1
+        db.flush()
         rubric.status = "published"
         audit(db, user.id, rubric, "rubric.published", {"number": rubric.number})
     return rubric_view(rubric)
@@ -783,21 +805,14 @@ def issue_feedback(
         raise HTTPException(422, "Manual text is only allowed with manual source")
     level = feedback.effective_level(assignment, body.requested_level)
     payload = {"assessment_id": assessment_id, **body.model_dump(mode="json")}
-    if body.source == "ai":
-        providers.require_ai(assignment)
-        if not assignment.data["feedback_policy"]["allow_generated"]:
-            raise HTTPException(403, "Generated feedback is disabled")
     job, created = jobs.enqueue(db, user.id, assignment.course_id, "feedback", payload, key)
     if not created:
         if job.status == "succeeded":
             return feedback.issued_view(found(db, IssuedFeedback, job.result_id))
         response.status_code = 202
         return JobOut.model_validate(job)
-    if body.source == "ai" and not feedback.hints_ready(db, assignment, assessment, level, "ai"):
-        response.status_code = 202
-        return JobOut.model_validate(job)
-    if body.source == "bank":
-        feedback.prepare_hints(db, assignment, assessment, level, "bank")
+    if body.source != "manual":
+        feedback.prepare_hints(db, assignment, assessment, level, body.source)
     record = feedback.issue(
         db,
         assignment,
@@ -907,3 +922,40 @@ def add_math_check(assessment_id: str, body: MathCheckIn, db: DB, user: Actor):
         "scope": "polynomial_identity_only",
         "assessment_verified": False,
     }
+
+
+# Staff-only assignment setup. Published banks are immutable with their rubric.
+def rubric_bank_access(db, user, rubric_id, write=False):
+    rubric = found(db, Rubric, rubric_id)
+    assignment, _ = assignment_access(db, user, rubric.assignment_id)
+    require_staff(db, user, assignment.course_id, instructor=write)
+    if write and rubric.status == "published":
+        raise HTTPException(409, "Create a new rubric version to change published hints")
+    bank = hint_banks.core_bank(db, assignment, rubric)
+    if bank is None:
+        raise HTTPException(404, "Legacy rubric has no hint bank; create a new rubric version")
+    return bank
+
+
+@app.get(P + "/rubric-versions/{rubric_id}/hint-bank")
+def get_hint_bank(rubric_id: str, db: DB, user: Actor):
+    return hint_banks.view(db, rubric_bank_access(db, user, rubric_id))
+
+
+@app.put(P + "/rubric-versions/{rubric_id}/hint-bank")
+def edit_hint_bank(rubric_id: str, body: hint_banks.Edit, db: DB, user: Actor):
+    return hint_banks.edit(db, rubric_bank_access(db, user, rubric_id, True), body, user.id)
+
+
+@app.post(P + "/rubric-versions/{rubric_id}/hint-bank:approve")
+def approve_hint_bank(rubric_id: str, body: hint_banks.Version, db: DB, user: Actor):
+    return hint_banks.approve(
+        db, rubric_bank_access(db, user, rubric_id, True), body.expected_version, user.id
+    )
+
+
+@app.post(P + "/rubric-versions/{rubric_id}/hint-bank:generate", status_code=202)
+def generate_hint_bank(rubric_id: str, body: hint_banks.Version, db: DB, user: Actor):
+    return hint_banks.queue(
+        db, rubric_bank_access(db, user, rubric_id, True), user.id, body.expected_version
+    )

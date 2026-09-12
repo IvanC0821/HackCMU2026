@@ -41,7 +41,7 @@ export async function generateApiDraft(config, workspace, onProgress = () => {},
   for (const [index, doc] of docs.entries()) {
     onProgress(`Uploading reference ${index + 1} of ${docs.length}`);
     const file = new File([doc.blob], doc.name, {type: 'application/pdf'});
-    const uploaded = await request(`/api/v1/documents?course_id=${encodeURIComponent(config.courseId)}&kind=${index === 0 ? 'assignment' : index === 1 ? 'answer_key' : 'standard'}`, {method: 'POST', file});
+    const uploaded = await request(`/api/v1/documents?course_id=${encodeURIComponent(config.courseId)}&kind=${index === 0 ? 'assignment' : index === 1 ? 'answer_key' : 'graded_example'}`, {method: 'POST', file});
     docIds.push(uploaded.id);
   }
   onProgress('Creating the API assignment');
