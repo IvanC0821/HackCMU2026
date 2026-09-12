@@ -58,8 +58,8 @@
 
 
 
-.rubric-studio{border:0;border-radius:0;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);height:calc(100dvh - 276px);min-height:520px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
-.open-demo .rubric-studio{height:calc(100dvh - 276px - var(--demo-bar-height,52px))}
+.rubric-studio{border:0;border-radius:0;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);height:calc(100dvh - 170px);min-height:520px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+.open-demo .rubric-studio{height:calc(100dvh - 170px - var(--demo-bar-height,52px))}
 .rubric-document{display:grid;grid-template-columns:auto 1fr;grid-template-rows:56px minmax(0,1fr) 32px;height:100%;position:relative}
 .rubric-document-toolbar{padding:8px 16px;background:#f6f8f8}.rubric-document-toolbar select{max-width:100%;font-size:.8rem;min-height:36px;border-color:transparent;background:transparent;padding:4px}
 .rubric-view-tools{justify-content:flex-end;background:#f6f8f8;padding:8px 16px;gap:20px;flex-wrap:nowrap}
@@ -121,3 +121,15 @@
   .rubric-document-toolbar{grid-row:1}.rubric-view-tools{grid-row:2;justify-content:space-between}
   .rubric-pdf-scroll{grid-row:3}.rubric-document-footer{grid-row:4}
 }
+
+/* A single breadcrumb row keeps the TA header as compact as the student view. */
+main{padding-top:16px}
+.page-header{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.page-header h1{font-size:.875rem;font-weight:700;letter-spacing:0;line-height:1.5}
+.homework-breadcrumb{display:flex;align-items:center;gap:12px;min-width:0;font-size:.875rem}
+.homework-breadcrumb a{color:var(--muted);white-space:nowrap;padding:10px 0}
+.homework-breadcrumb>span{color:#a1adb1;font-size:1.125rem}
+.homework-breadcrumb h1{overflow-wrap:anywhere}
+.page-header>.btn{min-height:36px;padding:7px 14px;font-size:.8125rem;border-radius:1px;flex-shrink:0}
+.page-header+.section-tabs{margin-top:0}
+.home-list{margin-top:24px}
