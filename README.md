@@ -7,6 +7,10 @@ Team verity's HackCMU 2026 project. Sep 11–12, 2026.
 
 ## Math homework backend
 
+The hosted setup uses **Supabase Postgres and private Storage**. Follow
+[Supabase setup](backend/README.md#configure-supabase) and fill the root
+`.env.example` placeholders in your local `.env` before starting the API and worker.
+
 See [backend setup and workflow](backend/README.md). The API supports PDF homework,
 private answer keys, versioned rubrics, immediate hints and instructor-reviewed
 final grades. Run `uv run python -m scripts.demo` from `backend/` for the complete

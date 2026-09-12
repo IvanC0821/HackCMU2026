@@ -105,10 +105,11 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 
 | Variable | Default / purpose |
 |---|---|
-| DATABASE_URL | sqlite:///./data/verity.db; deployment: postgresql+psycopg://... |
+| DATABASE_URL | Supabase Postgres connection URI in `.env.example`; accepts postgresql://, postgres://, or postgresql+psycopg://. Unconfigured local runtime defaults to SQLite. |
 | STORAGE_DIR | ./data/documents (private) |
-| S3_BUCKET, S3_REGION, S3_ENDPOINT_URL | Optional private S3-compatible storage |
-| AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY | Optional S3 credentials; SDK credential chain supported |
+| S3_BUCKET, S3_REGION, S3_ENDPOINT_URL | Supabase private bucket, project region, and S3 endpoint copied from Storage settings. Empty bucket selects local files. |
+| AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY | Supabase S3 access-key pair, loaded from `.env` and passed to the SDK. Both must be supplied together; absent credentials retain SDK credential-chain support. |
+| AWS_SESSION_TOKEN | Optional temporary S3 credential token; not needed for generated Supabase S3 keys. |
 | CORS_ORIGINS | JSON array, localhost:3000 default |
 | EXTERNAL_AI_ENABLED | false; global external-call switch |
 | OPENAI_API_KEY, OPENAI_MODEL | Server key; configurable model, gpt-6-astra default |
@@ -118,6 +119,22 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 | LOCAL_TOKENS_ENABLED | true; disable after external auth configuration |
 | MAX_PDF_PAGES, MAX_UPLOAD_BYTES | 10, 20971520 |
 | WORKER_POLL_SECONDS | 2 |
+
+### Supabase deployment
+
+Supabase supplies Postgres and private document storage. The Python API and worker
+continue to own authorization, grading, and jobs. Supabase Auth is not part of this
+change. Use a direct or session-pooler database connection with TLS; migrations
+run before the API and worker. Disable the project's Data API for this backend-only
+database so tables cannot bypass the API's course permissions.
+
+Custom S3 endpoints use Signature V4, path-style bucket addressing, and only
+required SDK checksums. Uploads omit the AWS server-side-encryption request header
+for custom endpoints because Supabase does not support it; normal AWS endpoints
+retain AES256 requests. Storage credentials are server-only and generated in
+Supabase's S3 settings, not the project's publishable or service-role API keys.
+Compose uses the configured hosted database and storage without a local Postgres
+service or a database URL override. The guided sample server remains offline.
 
 Examples: `backend/examples/rubric.json`, executable `backend/scripts/demo.py`.
 Generated `backend/openapi.json` is the frontend schema reference.
