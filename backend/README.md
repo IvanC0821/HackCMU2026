@@ -103,7 +103,7 @@ rubric defines it; unreadable work is uncertain and excluded from the denominato
 
 Set `EXTERNAL_AI_ENABLED=true` and `OPENAI_API_KEY` in the root `.env`. Assignments
 must also opt in with `external_ai_allowed: true`. `OPENAI_MODEL` defaults to
-`gpt-6-astra`; set it to a Responses/structured-output/vision-capable model available
+`gpt-5.4`; set it to a Responses/structured-output/vision-capable model available
 to your account. `OPENAI_REASONING_EFFORT` defaults to `high`. No reviewer model is
 used. The API uses [Responses structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 with `store: false`; schema validation is not mathematical verification.
