@@ -15,6 +15,7 @@ from .classroom import Classroom, mutate, now
 from .classroom_dataset import MAXIMA, band_id, grade_parts, pdf_text, source_paths
 from .config import settings
 from .pdf_annotations import PDFLocator, feedback_code
+from .staff_explanations import STAFF_EXPLANATION_STYLE
 
 
 class PartAssessment(BaseModel):
@@ -108,7 +109,7 @@ def assess(root, folder, context, output_dir):
                 "index in the target supporting it. Never invent a location for absent work. For full "
                 "credit or missing work with no supporting quote, return null quote and page_index. "
                 "No overall score field: the server will sum validated part scores. This is a provisional "
-                "assessment, not a final human-reviewed grade."
+                "assessment, not a final human-reviewed grade." + STAFF_EXPLANATION_STYLE
             ),
             input=[{"role": "user", "content": content}],
             text_format=PilotAssessment,

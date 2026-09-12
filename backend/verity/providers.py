@@ -11,8 +11,9 @@ from .config import settings
 from .models import Document, Region
 from .pdf import render, valid_bbox
 from .schemas import AIHint, AIJudgment, RubricSpec
+from .staff_explanations import STAFF_EXPLANATION_STYLE
 
-PROMPT_VERSION = "math-assessment-v1"
+PROMPT_VERSION = "math-assessment-v2-clear-reasons"
 FEEDBACK_PROMPT_VERSION = "math-hints-v1"
 
 
@@ -224,7 +225,8 @@ def assess_question(assignment, question, rubric, regions, images, material_cont
         "belong to the criterion and match its category; otherwise use null. Use source region IDs as evidence; "
         "never invent geometry or IDs. A finding with no localized evidence gets an empty region list. "
         "Root cause indexes refer only to earlier findings in this response. Return concise staff-facing "
-        "rationales, not hidden chain-of-thought. Never return student-facing feedback here.",
+        "rationales, not hidden chain-of-thought. Never return student-facing feedback here."
+        + STAFF_EXPLANATION_STYLE,
         {
             "question": question,
             "rubric": rubric,

@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
+import {renderAssessmentExplanation} from '../../connected/review-explanation.mjs';
 const files=['model.mjs','row-check.mjs','case.mjs','storage.mjs','api.mjs','case-view.mjs','view.mjs','app.mjs'];
 const code=(await Promise.all(files.map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')))).map(s=>s.replace(/^import .+;\n/gm,'').replace(/^export /gm,'')).join('\n');
 async function screen() {
   const listeners={}, root={}, elements={};
   const noop={focus(){},close(){},showModal(){},addEventListener(){},matches(){return false;}};
   const document={activeElement:noop,querySelector(selector){return selector==='#app'?root:(elements[selector]||={...noop});},querySelectorAll(){return [];},addEventListener(event,fn){listeners[event]=fn;},getElementById(){return {scrollIntoView(){}};}};
-  const context=vm.createContext({connected:false,document,location:{hash:'#/'},window:{addEventListener(type,fn){listeners[type]=fn;}},performance,structuredClone,crypto,URL,Blob,File,AbortController,AbortSignal,setTimeout,clearTimeout,navigator:{}});
+  const context=vm.createContext({renderAssessmentExplanation,connected:false,document,location:{hash:'#/'},window:{addEventListener(type,fn){listeners[type]=fn;}},performance,structuredClone,crypto,URL,Blob,File,AbortController,AbortSignal,setTimeout,clearTimeout,navigator:{}});
   vm.runInContext(code,context); await new Promise(r=>setImmediate(r));
   return {root,context,elements,
     route(hash){context.location.hash=hash;listeners.hashchange();},

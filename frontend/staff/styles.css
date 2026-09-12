@@ -11,3 +11,17 @@
 @media(min-width:1100px){.case-layout{grid-template-columns:minmax(0,1fr) 340px}.case-feedback{position:sticky;top:24px}}
 @media(max-width:759px){.case-heading{display:block}.case-heading>.badge{margin-top:16px}.matrix-step{flex-direction:column;align-items:flex-start}.operation-label{max-width:100%}.matrix{align-self:flex-end}.case-options{gap:8px}.case-options .btn{flex:1;min-width:95px;padding:8px}.case-layout .sample-paper{min-height:420px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+.proposal-reason .deduction-label{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;margin:0 0 8px}
+.proposal-reason .deduction-summary{color:var(--ink);line-height:1.55;margin:0;overflow-wrap:anywhere}
+.deduction-check{display:grid;gap:6px;margin:12px 0;min-width:0}
+.deduction-check>span{font-size:.75rem;font-weight:700;color:var(--muted)}
+.deduction-check>div{max-width:100%;overflow-x:auto;padding:4px 0;color:var(--ink)}
+.proposal-reason .deduction-rule{margin:10px 0 0;line-height:1.5}
+.reason-details{margin-top:12px;font-size:.8125rem}
+.reason-details>summary{cursor:pointer;color:var(--teal);padding:4px 0;width:fit-content}
+.reason-details>div{line-height:1.6;overflow-wrap:anywhere;margin-top:8px;max-width:100%;overflow-x:auto}
+.reason-math{display:inline-block;max-width:100%;overflow-x:auto;vertical-align:middle;padding:2px 0}
+.reason-math math{font-family:"STIX Two Math","Cambria Math",math;font-size:1.08em}
+.reason-math-block{display:block;margin:8px 0;text-align:left}
+.reason-math-block math{margin:0}
+.reason-math-fallback{white-space:pre-wrap;overflow-wrap:anywhere}
