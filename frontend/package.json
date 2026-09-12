@@ -11,7 +11,8 @@
     "start:staff": "python3 -m http.server 3003 --bind 127.0.0.1 --directory .",
     "test:browser": "node tests/browser.mjs",
     "test:guided": "node tests/guided.mjs",
-    "test:rubric": "node tests/rubric-browser.mjs"
+    "test:rubric": "node tests/rubric-browser.mjs",
+    "test:annotations": "node tests/annotation-browser.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0"

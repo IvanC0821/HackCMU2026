@@ -258,3 +258,11 @@ preview builder and tests, plus the classroom static-asset allowlist and privacy
 regression test. The connected persistence adapter uses the workspace PUT response
 as its saved revision, avoiding a separate read that can race rapid edits.
 No new API endpoint or database migration is required.
+
+## Whole-submission review and teaching support
+
+Ivan's September 12 correction assigns each TA an entire student's paper. The
+additive local-classroom routes, fields and validation rules are specified in
+[[submission-review-spec]]. Review ownership is per submitted attempt, not per
+question across students. Final grading, practice feedback and explicit help
+requests remain separate. Native assessment contracts are unchanged.

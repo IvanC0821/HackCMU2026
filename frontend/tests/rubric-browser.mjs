@@ -85,8 +85,14 @@ try{
  await page.locator('.deduction-marker').first().click();
  assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'true');
  await page.locator('.deduction-item').nth(1).click({position:{x:4,y:4}});
- assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'true','Selecting another deduction preserves the first');
  assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true');
+ await page.locator('.deduction-marker').first().click();
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true','Deselecting one leaves other deductions selected');
+ await page.getByRole('tab',{name:'Files & settings'}).click();
+ await page.getByRole('tab',{name:'Rubric',exact:true}).click();
+ assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true','Independent selections survive rerender');
  await page.screenshot({path:'/private/tmp/verity-rubric-deductions.png',fullPage:true});
  await page.reload();await page.locator('.question-reference > summary').click();await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'Crops survive remote save and reload');
@@ -110,7 +116,8 @@ try{
  assert(!JSON.stringify(pub).includes('solutionCrops'));assert(!JSON.stringify(pub).includes('Final answer and method'));
  const form=new FormData();form.append('file',new Blob([await fixture()],{type:'application/pdf'}),'student.pdf');
  const uploaded=await api('/files',{method:'POST',body:form},'student');
- await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ const attempt=await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ await api(`/attempts/${attempt.id}/final`,{method:'POST'},'student');
  const after=await api('/workspace'),sid=after.submissions.find(s=>s.attempts.some(a=>a.pdf.remoteId===uploaded.remoteId)).id;
  await page.goto(`${origin}/teacher/#/homework/1/review/${sid}`);
  await page.reload();
