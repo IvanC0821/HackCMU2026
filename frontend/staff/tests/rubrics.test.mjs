@@ -52,13 +52,13 @@ test('failed or stale requests never produce a usable draft', async () => {
 test('TA setup wraps long explanations and keeps consent, sources and checks accessible', () => {
   const {s,spec}=fixture(); s.draft=mapDraft(spec,s.draft,[s.documents.blank]);
   const html=renderWorkspace(s,{route:'standards',connected:true,editQ:0,docURLs:{}});
-  assert.match(html, /Requirement<textarea rows="4"/);
-  assert.match(html, /textarea rows="3" aria-label="Criterion 1, outcome 1"/);
+  assert.match(html, /Requirement<\/span><textarea rows="1"/);
+  assert.match(html, /textarea rows="1" aria-label="Criterion 1, outcome 1"/);
   assert.match(html, /Error checks and exceptions/);
   assert.match(html, /questions.pdf, page 1/);
   assert.match(html, /paid API credits/);
   assert.doesNotMatch(html, /id="api-token"|id="api-origin"/);
-  assert(html.indexOf('Generate a rubric from your PDFs') < html.indexOf('Questions and deductions'));
+  assert(html.indexOf('Generate a rubric from your PDFs') > html.indexOf('id="studio-panel-references"')); // Optional drafting stays in Files & settings.
   s.draft[0].criteria[0].patterns[0].definition='<img src=x onerror=alert(1)>';
-  assert.doesNotMatch(renderWorkspace(s,{route:'standards',connected:true,editQ:0}),/<img src=x/);
+  assert.doesNotMatch(renderWorkspace(s,{route:'standards',connected:true,editQ:0,docURLs:{}}),/<img src=x/);
 });
