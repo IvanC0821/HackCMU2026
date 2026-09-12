@@ -49,7 +49,18 @@ try{
  assert.equal(await page.locator('.point, .series').count(),0,'Empty chart does not invent student results');
  assert.equal(await page.locator('.demo-flow, .announcement-section').count(),0);
  await page.screenshot({path:'/private/tmp/verity-clean-overview.png',fullPage:true});
+ const overviewTabs=await page.locator('.section-tabs').boundingBox();
+ const tabPositions=await page.locator('.section-tabs a').evaluateAll(links=>links.map(link=>({x:link.getBoundingClientRect().x,y:link.getBoundingClientRect().y,width:link.getBoundingClientRect().width})));
  await page.getByRole('navigation',{name:'Homework sections'}).getByRole('link',{name:'Rubric',exact:true}).click();
+ await page.locator('.section-tabs a[aria-current="page"]').filter({hasText:/^Rubric$/}).waitFor();
+ assert.deepEqual(await page.locator('.section-tabs').boundingBox(),overviewTabs,'Rubric navigation stays in the same position');
+ assert.deepEqual(await page.locator('.section-tabs a').evaluateAll(links=>links.map(link=>({x:link.getBoundingClientRect().x,y:link.getBoundingClientRect().y,width:link.getBoundingClientRect().width}))),tabPositions,'Individual tabs retain their positions');
+ assert(await page.locator('.course-rail').isVisible(),'Rubric retains the course sidebar');
+ await page.getByRole('navigation',{name:'Homework sections'}).getByRole('link',{name:'Grading',exact:true}).click();
+ await page.locator('.section-tabs a[aria-current="page"]').filter({hasText:/^Grading$/}).waitFor();
+ assert.deepEqual(await page.locator('.section-tabs').boundingBox(),overviewTabs,'Grading uses the same navigation position');
+ await page.getByRole('navigation',{name:'Homework sections'}).getByRole('link',{name:'Rubric',exact:true}).click();
+ await page.locator('.section-tabs a[aria-current="page"]').filter({hasText:/^Rubric$/}).waitFor();
  const sections=page.getByRole('navigation',{name:'Homework sections'});
  assert.deepEqual(await sections.getByRole('link').allTextContents(),['Overview','Rubric','Grading']);
  assert.equal(await sections.getByRole('link',{name:'Rubric',exact:true}).getAttribute('aria-current'),'page');
@@ -167,7 +178,8 @@ try{
  assert.equal(revised.versions[0].questions[0].solutionCrops[1].rect[0],.125,'Keyboard bounds are saved as normalized coordinates');
  await page.setViewportSize({width:390,height:844});
  await page.waitForFunction(()=>document.querySelector('.crop-surface canvas').getBoundingClientRect().width<innerWidth);
- assert.equal(await page.locator('.course-rail').count(),0,'Rubric editor omits the course navigation rail');
+ assert(await page.locator('.course-rail').isVisible(),'Rubric retains course navigation on mobile');
+ assert(await page.locator('.rubric-view-tools').evaluate(el=>{const tools=el.getBoundingClientRect();return [...el.querySelectorAll('button,input')].every(control=>{const r=control.getBoundingClientRect();return r.top>=tools.top&&r.bottom<=tools.bottom+1;});}),'Mobile PDF controls fit inside their toolbar');
  await page.screenshot({path:'/private/tmp/verity-rubric-mobile.png',fullPage:true});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow on mobile');
  await page.locator('.demo-perspectives').getByRole('link',{name:'Student',exact:true}).click();
@@ -179,6 +191,37 @@ try{
  await page.goto(`${origin}/student-assets/index.html?example=graded`);
  await page.locator('.pdf-hint-box').waitFor();
  for(const name of ['Student','TA'])assert(await page.locator('.demo-perspectives').getByRole('link',{name,exact:true}).isVisible(),'Hosted examples retain both perspectives');
+ // Use fictional records in an isolated browser page to exercise the chart, without writing course data.
+ const chartPage=await context.newPage();
+ await chartPage.goto(`${origin}/teacher/`);
+ await chartPage.locator('.homework-row').waitFor();
+ const chartState=await chartPage.evaluate(async()=>{
+   const m=await import('/staff/model.mjs');const s=m.newWorkspace();
+   m.loadSampleRubric(s);m.publishDraft(s);m.seedClass(s,true);m.addSampleRevision(s);return s;
+ });
+ let chartWrites=0;
+ await chartPage.route('**/classroom/workspace',async route=>{
+   if(route.request().method()!=='GET')chartWrites++;
+   await route.fulfill({json:chartState});
+ });
+ await chartPage.goto(`${origin}/teacher/#/homework/1`);
+ await chartPage.reload();
+ await chartPage.locator('.chart-point').first().waitFor();
+ assert.equal(await chartPage.locator('#question-statistics').count(),0);
+ await chartPage.locator('.chart-point[data-q="q2"][data-series="latest"]').click();
+ assert.equal(await chartPage.locator('#question-statistics-title').innerText(),chartState.versions[0].questions[1].title);
+ await chartPage.screenshot({path:'/private/tmp/verity-question-statistics.png',fullPage:true});
+ await chartPage.getByRole('button',{name:'Hide details'}).click();
+ assert.equal(await chartPage.locator('#question-statistics').count(),0);
+ const firstPoint=chartPage.locator('.chart-point[data-q="q1"][data-series="first"]');
+ await firstPoint.focus();await chartPage.keyboard.press('Enter');
+ assert.equal(await chartPage.locator('#question-statistics-title').innerText(),chartState.versions[0].questions[0].title);
+ assert.equal(await firstPoint.getAttribute('aria-pressed'),'true');
+ await chartPage.getByRole('button',{name:'Hide details'}).click();
+ await firstPoint.focus();await chartPage.keyboard.press('Space');
+ assert.equal(await chartPage.locator('#question-statistics').count(),1);
+ assert.equal(chartWrites,0,'Inspecting question statistics does not save or mutate course data');
+ await chartPage.close();
  assert.deepEqual(errors,[]);
  console.log('Rubric browser passed: PDF canvas, pointer and keyboard crops, long-page navigation, multi-question editing, remote persistence, immutable TA previews, student privacy, replacement remapping, responsive layout.');
 }catch(error){

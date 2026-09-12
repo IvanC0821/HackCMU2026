@@ -11,7 +11,7 @@ import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, a
 
 let state = newWorkspace(), store = null, persistedRevision = 0, saveChain = Promise.resolve(), blocked = false, controller;
 const appRoot = document.querySelector('#app'), dialog = document.querySelector('#staff-dialog');
-const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
+const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: null, reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
   setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {}, selectedDeductions: new Set(),
@@ -85,7 +85,7 @@ async function checkPdf(file) {
 function focusAgain(button) {
   const q = button.dataset.q, index = button.dataset.index;
   const candidates = [...document.querySelectorAll('[data-action]')];
-  candidates.find(b => b.dataset.action === button.dataset.action && b.dataset.q === q && b.dataset.index === index)?.focus({preventScroll: true});
+  candidates.find(b => b.dataset.action === button.dataset.action && b.dataset.q === q && b.dataset.index === index && b.dataset.series === button.dataset.series)?.focus({preventScroll: true});
 }
 document.addEventListener('click', async event => {
   if (ui.initializing) return;
@@ -114,7 +114,7 @@ document.addEventListener('click', async event => {
   if (ui.busy) return;
   ui.error = ''; ui.message = '';
   try {
-    const navigation = ['start-crop', 'edit-crop', 'setup-tab', 'setup-prev', 'setup-next', 'setup-zoom-in', 'setup-zoom-out', 'cancel-crop', 'pdf', 'edit-question', 'review-question', 'insight', 'previous-page', 'next-page', 'copy', 'test-api'];
+    const navigation = ['start-crop', 'edit-crop', 'setup-tab', 'setup-prev', 'setup-next', 'setup-zoom-in', 'setup-zoom-out', 'cancel-crop', 'pdf', 'edit-question', 'review-question', 'insight', 'close-insight', 'previous-page', 'next-page', 'copy', 'test-api'];
     if (!navigation.includes(action)) assertWritable();
     if (connected && ['reset','confirm-reset','seed','cohort','recheck'].includes(action)) throw Error('This shared classroom preserves student records. Use a separate demo workspace for reset or bulk sample replacement.');
     if (ui.cropSelection && ['publish','add-question','sample-rubric','edit-question','remove-file'].includes(action)) throw Error('Save or cancel the selected answer crop first.');
@@ -166,6 +166,7 @@ document.addEventListener('click', async event => {
     if (action === 'edit-question') ui.editQ = Number(button.dataset.index);
     if (action === 'review-question') { ui.reviewQ = button.dataset.q; ui.page = 0; }
     if (action === 'insight') ui.insightQ = button.dataset.q;
+    if (action === 'close-insight') ui.insightQ = null;
     if (action === 'seed' || action === 'cohort') { seedClass(state, action === 'cohort'); ui.message = 'Fictional first-attempt work loaded. Simulate a revision to see the change.'; }
     if (action === 'revision') { addSampleRevision(state); ui.message = 'A simulated revision was added. Previous attempts are preserved; the chart reflects the latest work.'; }
     if (action === 'skim') { markSkimmed(state, ui.sid, button.dataset.q); ui.message = 'Question checked.'; }
@@ -199,6 +200,7 @@ document.addEventListener('click', async event => {
     }
   } catch (error) { ui.error = error.message; }
   render(); announce(ui.error || ui.message); focusAgain(button);
+  if (action === 'close-insight') document.querySelector('.question-chart')?.focus({preventScroll:true});
 });
 document.addEventListener('input', event => {
   const input = event.target;
@@ -337,6 +339,10 @@ document.addEventListener('toggle', event => {
   if (key && event.target.isConnected) ui.disclosures[key] = event.target.open;
 }, true);
 document.addEventListener('keydown', event => {
+  const point = event.target.closest?.('.chart-point');
+  if (point && ['Enter', ' '].includes(event.key)) {
+    event.preventDefault(); point.dispatchEvent(new MouseEvent('click', {bubbles:true}));
+  }
   const tab = event.target.closest?.('[role="tab"][data-tab]');
   if (tab && ['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) {
     event.preventDefault(); ui.setupTab = event.key === 'Home' ? 'rubric' : event.key === 'End' ? 'references' : ui.setupTab === 'rubric' ? 'references' : 'rubric';
