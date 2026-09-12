@@ -1,6 +1,6 @@
 import {assignment,emptyMapping,togglePage,mappingIssues,validatePdf,makeRevision,assessSubmission} from './model.mjs';
 import {readRevisions,saveRevision} from './storage.mjs';
-import {located, locationLabel, findingNumber, layoutMarkers, markerMarkup, detailMarkup} from './annotations.mjs';
+import {located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup} from './annotations.mjs';
 const connected = location.pathname === '/student/';
 const {requireRole, addSignOut, fetchStudent, submitStudent, revisionBytes, post, request} = connected ? await import('../connected/client.mjs') : {};
 
@@ -71,8 +71,8 @@ function feedbackBody(){
  if(state.busy)return `<div class="feedback-empty"><span class="spinner"></span><h3>${esc(state.progress||'Preparing feedback…')}</h3><p>${state.sample?'Loading the preset result for this fictional sample.':'Your submission is being processed.'}</p></div>`;
  if(!state.result)return `<div class="feedback-empty">${icon('clock')}<h3>Saved. Feedback is pending.</h3><p>Your PDF and page assignments are saved locally. Live grading isn’t connected in this preview.</p><p>No score or error markers have been generated for your file.</p>${btn('Retry connection','retry','secondary')}<button class="text-button" data-action="sample">Explore sample feedback ${icon('arrow')}</button></div>`;
  const findings=state.result.findings.filter(f=>f.questionId===state.question);
- return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':'No issues flagged'}</h2><p>${findings.length?'Select a yellow marker to see the kind of issue.':'There are no feedback markers for this question in the sample.'}</p></div>
- ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong><span class="possible">Possible issue</span></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">Page ${f.pageIndex+1} ${icon('arrow')}</span></button>`).join('')}
+ return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':'No issues flagged'}</h2><p>${findings.length?'Yellow circles connect each marked location to its hint beside the page.':'There are no feedback markers for this question in the sample.'}</p></div>
+ ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong><span class="possible">Possible issue</span></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))} ${icon('arrow')}</span></button>`).join('')}
  <div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div>
  <div class="sample-disclaimer">Sample feedback is preset. It illustrates the experience, not a live model assessment.</div>`;
 }
@@ -149,7 +149,9 @@ async function drawPage(){
    const page=await state.pdf.getPage(state.page+1);if(epoch!==drawEpoch)return;
    const unit=page.getViewport({scale:1});
    const available=Math.max(240,$('#pdf-scroll').clientWidth-48);
-   const displayWidth=Math.min(760,available)*state.zoom;
+   const hasNotes=(state.result?.findings||[]).some(f=>f.pageIndex===state.page&&located(f));
+   const pageSpace=hasNotes&&available>=620?available-276:available;
+   const displayWidth=Math.min(760,pageSpace)*state.zoom;
    const viewport=page.getViewport({scale:displayWidth/unit.width});
    const dpr=Math.min(devicePixelRatio||1,2);
    canvas.width=Math.round(viewport.width*dpr);canvas.height=Math.round(viewport.height*dpr);
@@ -163,19 +165,26 @@ async function drawPage(){
  }catch(error){if(epoch===drawEpoch&&error.name!=='RenderingCancelledException'){state.error='This page could not be displayed. Download the original PDF or try another page.';const host=$('#paper-wrapper');if(host)host.innerHTML=errorHTML();announce(state.error);}}
 }
 function paintMarkers(){
- const target=$('#markers');if(!target)return;
- const wrapper=$('#paper-wrapper');
- const placements=layoutMarkers(state.result?.findings||[],state.page,wrapper.clientWidth,wrapper.clientHeight);
- target.innerHTML=markerMarkup(placements,state.activeFinding,state.noteOpen);
+ const target=$('#markers'),canvas=$('#pdf-canvas'),wrapper=$('#paper-wrapper');if(!target||!canvas)return;
+ const placements=layoutMarkers(state.result?.findings||[],state.page,canvas.clientWidth,canvas.clientHeight);
+ target.innerHTML=markerMarkup(placements,state.activeFinding);
+ const heights={};
+ let layout=layoutCallouts(placements,canvas.clientWidth,canvas.clientHeight);
+ const notes=$('#annotation-note');notes.innerHTML=calloutMarkup(layout,state.activeFinding);
+ for(const card of notes.querySelectorAll('[data-hint]'))heights[card.dataset.hint]=card.offsetHeight;
+ layout=layoutCallouts(placements,canvas.clientWidth,canvas.clientHeight,heights);
+ wrapper.style.width=`${layout.width}px`;wrapper.style.height=`${layout.height}px`;
+ notes.innerHTML=calloutMarkup(layout,state.activeFinding);
+ const highlights=$('#annotation-highlights');highlights.style.width=`${canvas.clientWidth}px`;highlights.style.height=`${canvas.clientHeight}px`;
  paintAnnotationDetail();
 }
 function paintAnnotationDetail(){
- const wrapper=$('#paper-wrapper');if(!wrapper)return;
- const placements=layoutMarkers(state.result?.findings||[],state.page,wrapper.clientWidth,wrapper.clientHeight);
+ const canvas=$('#pdf-canvas');if(!canvas)return;
+ const placements=layoutMarkers(state.result?.findings||[],state.page,canvas.clientWidth,canvas.clientHeight);
  const placement=placements.find(p=>p.finding.id===state.activeFinding);
- const detail=detailMarkup(placement?.finding,placement,wrapper.clientWidth,wrapper.clientHeight);
- $('#annotation-highlights').innerHTML=detail.highlights;
- $('#annotation-note').innerHTML=state.noteOpen?detail.note:'';
+ $('#annotation-highlights').innerHTML=detailMarkup(placement?.finding,placement).highlights;
+ for(const card of document.querySelectorAll('[data-hint]'))card.classList.toggle('selected',card.dataset.hint===state.activeFinding);
+ for(const line of document.querySelectorAll('[data-connector]'))line.classList.toggle('selected',line.dataset.connector===state.activeFinding);
 }
 function closeAnnotation(){
  const previous=state.activeFinding;state.activeFinding=null;state.noteOpen=false;
@@ -262,7 +271,7 @@ document.addEventListener('click',event=>{
  if(el.dataset.tab){state.tab=el.dataset.tab;render();document.querySelector(`[data-tab="${state.tab}"]`)?.focus({preventScroll:true});}
  if(el.dataset.panel){state.mobilePanel=el.dataset.panel;render();document.querySelector(`[data-panel="${state.mobilePanel}"]`)?.focus({preventScroll:true});}
 });
-document.addEventListener('pointerover',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker,{showNote:false});});
+
 document.addEventListener('focusin',event=>{const el=event.target.closest('[data-marker]');if(el&&(state.activeFinding!==el.dataset.marker||!state.noteOpen))activateFinding(el.dataset.marker);});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.activeFinding){event.preventDefault();closeAnnotation();}});
 document.addEventListener('change',event=>{

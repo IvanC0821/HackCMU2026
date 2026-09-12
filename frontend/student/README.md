@@ -75,3 +75,11 @@ This is a UI adapter shape, not an approved replacement for the repository API c
 `npm test`: seven Node tests cover mapping, input guards, snapshot isolation, consistent fixture totals, no arbitrary-upload grades, and cancellation. `npm run fixtures` regenerates the fictional PDF using pdf-lib.
 
 Browser verified: sample PDF rendering, multi-page/shared-page mapping, gated submit, provisional 24/30 result, marker-linked question/category changes, phone layout (390×844, no horizontal page overflow), and persistence after refresh. No console errors observed during those checks. Custom local-file selection could not be automated because the Chrome extension disallowed file access; test the picker and drag/drop manually. Live backend behavior is not verified or connected.
+
+## Persistent PDF hint callouts
+
+The student feedback viewer places a small yellow circle at each saved normalized error point. Yellow connectors lead to rectangular, pale-yellow hint boxes with dark text in a gutter beside the page. All located hints on the current page remain visible, including after selection is cleared. Boxes are spaced using their rendered heights, so long hints and nearby errors do not overlap. Zoom keeps anchors tied to PDF coordinates; on narrow screens the document and hint gutter scroll inside the viewer.
+
+Only existing student-visible finding messages are displayed. Missing locations remain in the feedback sidebar without an invented PDF marker. Related-work and approximate-part anchors retain their location qualifiers. The original PDF bytes are unchanged.
+
+Run `npm run test:annotations --prefix frontend` from the repository root for the browser workflow; `npm test --prefix frontend/student` covers geometry, stable numbering, escaping, mapping, and revision behavior.
