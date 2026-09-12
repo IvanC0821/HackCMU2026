@@ -114,7 +114,7 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 | OPENAI_API_KEY, OPENAI_MODEL | Server key; configurable model, gpt-6-astra default |
 | OPENAI_REASONING_EFFORT | high |
 | ZAI_API_KEY | Optional hosted GLM-OCR credential; server only |
-| GLM_OCR_BBOX_FORMAT | `normalized` (default, 0–1 per Z.ai API reference) or `pixels` (provider page dimensions required); never auto-detected |
+| GLM_OCR_BBOX_FORMAT | `pixels` (default, confirmed by live hosted API; provider page dimensions required) or `normalized` (0–1); never auto-detected |
 | JWT_ISSUER, JWT_AUDIENCE, JWT_JWKS_URL | Configure all three for external RS256 auth |
 | LOCAL_TOKENS_ENABLED | true; disable after external auth configuration |
 | MAX_PDF_PAGES, MAX_UPLOAD_BYTES | 10, 20971520 |
@@ -192,8 +192,9 @@ Blank pages may return an empty layout with empty Markdown. Confidence is null
 when the provider supplies none. Provider coordinate format, label, model, token
 usage and page transforms are retained as evidence without logging raw responses.
 
-Z.ai's API reference specifies normalized 0–1 boxes; some SDK versions describe
-pixel boxes. `GLM_OCR_BBOX_FORMAT` selects the convention explicitly. Pixel mode
+Z.ai's API reference specifies normalized 0–1 boxes, but a live hosted request
+on 2026-09-12 returned pixel boxes. The default is therefore `pixels`.
+`GLM_OCR_BBOX_FORMAT` selects the convention explicitly. Pixel mode
 requires returned page dimensions; aspect-ratio changes and reported rotations
 are rejected. Coordinates are mapped through the actual rendered PNG dimensions
 and the saved inverse transform, including render rounding at page boundaries.
