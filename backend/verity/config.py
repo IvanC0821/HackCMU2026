@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     s3_bucket: str = ""
     s3_region: str = "us-east-1"
     s3_endpoint_url: str = ""
+    aws_access_key_id: str = Field(default="", repr=False)
+    aws_secret_access_key: str = Field(default="", repr=False)
+    aws_session_token: str = Field(default="", repr=False)
     cors_origins: list[str] = ["http://localhost:3000"]
     external_ai_enabled: bool = False
     openai_api_key: str = ""
@@ -26,6 +29,21 @@ class Settings(BaseSettings):
     max_pdf_pages: int = Field(default=10, ge=1, le=100)
     max_upload_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     worker_poll_seconds: float = Field(default=2, ge=0.1, le=60)
+
+    @field_validator("database_url")
+    @classmethod
+    def postgres_driver(cls, value):
+        # Supabase's Connect dialog uses the generic Postgres URI scheme.
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
+
+    @model_validator(mode="after")
+    def storage_credentials(self):
+        if bool(self.aws_access_key_id) != bool(self.aws_secret_access_key):
+            raise ValueError("Configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY together")
+        return self
 
     @model_validator(mode="after")
     def auth_config(self):

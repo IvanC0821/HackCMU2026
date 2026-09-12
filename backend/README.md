@@ -6,13 +6,44 @@ FastAPI API for handwritten/typed math homework, private PDF answer keys, versio
 rubrics, manual grading, optional AI assessment and immediate practice hints.
 AI grades remain proposals until an instructor reviews and finalizes them.
 
-## Run locally
+## Configure Supabase
+
+Supabase supplies the hosted Postgres database and private PDF storage. The API
+and grading worker still run as Python processes or containers. No AWS account,
+Supabase client SDK, publishable key, or service-role API key is needed for this
+backend connection. Login continues to use the existing provisioned bearer tokens.
+
+1. Create a Supabase project. For this backend-only database, turn off **Enable
+   Data API** in **Integrations → Data API** before running migrations. Course
+   access is enforced by our API; its tables must not also be exposed through
+   Supabase REST/GraphQL. See [securing the Data API](https://supabase.com/docs/guides/api/securing-your-api#disable-the-data-api).
+2. In **Connect**, copy the **Session pooler** Postgres URI (port 5432). Insert
+   your database password, URL-encoding reserved characters, and append
+   `?sslmode=require`. A direct connection also works where IPv6 is available.
+   Use session mode, not transaction mode, for these persistent services and
+   migrations. See [database connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
+3. In Storage, create a **private** bucket named `homework`. In its S3 settings,
+   generate an access-key pair and copy the region and endpoint. See
+   [S3 credentials](https://supabase.com/docs/guides/storage/s3/authentication).
+4. Copy the root `.env.example` to `.env` if it does not exist, then replace its
+   `YOUR_...` placeholders. Set `DATABASE_URL`, `S3_BUCKET`, `S3_REGION`,
+   `S3_ENDPOINT_URL`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`.
+   The AWS-prefixed values are **Supabase S3 keys** and stay on the server.
+   `AWS_SESSION_TOKEN` stays empty for these keys.
+
+The supplied endpoint uses
+`https://YOUR_PROJECT_REF.storage.supabase.co/storage/v1/s3`; prefer the exact value
+from the dashboard. Generic `postgresql://` and `postgres://` database URIs are
+automatically mapped to the installed psycopg driver. The storage client reads
+credentials from `.env`, uses path-style S3 requests, and omits unsupported AWS
+encryption headers for custom endpoints.
+
+## Run locally against Supabase
 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-From the repository root:
+After configuring the root `.env`, run from the repository root:
 
 ```bash
-cp .env.example .env
 cd backend
 uv sync --frozen
 uv run python -m alembic upgrade head
@@ -33,17 +64,25 @@ In a separate terminal, from `backend/`:
 uv run python -m verity.jobs
 ```
 
-SQLite and private local files need no extra services. AI remains off by default.
-For local Postgres and separate API/worker containers instead:
+AI remains off by default; enable it using the configuration below.
+To run the API and worker in containers against the same Supabase project:
 
 ```bash
 docker compose -f backend/compose.yaml up --build
 ```
 
-Run that from the repository root after copying `.env.example` to `.env`. The
-Compose password is a local-only development value; Postgres is not host-exposed.
+Run that from the repository root after configuring `.env`. Compose runs
+migrations first, then the API and worker. It uses your configured `DATABASE_URL`
+and Storage settings; it does not start or override them with a local Postgres.
 Provision users with `docker compose -f backend/compose.yaml exec api python -m
 verity.cli ...`. No accounts or paid hosting are created by these files.
+
+For offline development, use `DATABASE_URL=sqlite:///./data/verity.db` and leave
+`S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
+empty. The one-click `python -m scripts.debug_server` supplies its own temporary
+SQLite/files and disables cloud providers regardless of the configured project.
+Changing `DATABASE_URL` selects another database; it does not copy existing local
+records or PDFs into Supabase.
 
 ## Complete example and checks
 
@@ -144,8 +183,7 @@ Use the Docker image for an API service and a separate worker service. Run
 `alembic upgrade head` once before starting them. Health endpoints are
 `/health/live` and `/health/ready`. Configure explicit frontend CORS origins.
 
-Set a private managed Postgres `DATABASE_URL` and `S3_BUCKET`/`S3_REGION` (optional
-`S3_ENDPOINT_URL`). Use the normal AWS credential chain/workload identity. Documents
+Use the Supabase database and private bucket configured above. Documents
 are read through authorized API endpoints; there are no public object URLs.
 Configure a provider's HTTPS JWKS URL, issuer and audience, provision its user
 subjects, then disable `LOCAL_TOKENS_ENABLED`. Authentication verifies signature,

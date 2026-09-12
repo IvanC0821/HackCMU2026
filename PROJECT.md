@@ -52,8 +52,8 @@ flow in a real browser, including cross-origin session rejection.
 | Access | Global users, course memberships, staff/student projections, expiring local tokens or verified external JWTs |
 | Processing | Durable database jobs, separate worker, idempotency keys, bounded retries and expiring claims |
 | Debug frontend | Unlinked `/__debug__/` page: inputs, presets, request JSON, status and raw responses |
-| Local operation | SQLite/private local files; optional Postgres Compose setup; no AI needed for manual grading |
-| Deployment building blocks | Docker image, migrations, Postgres support and optional private S3 storage |
+| Local operation | SQLite/private local files; Supabase-backed API/worker Compose setup; no AI needed for manual grading |
+| Deployment building blocks | Docker image, migrations, Supabase Postgres and private Storage |
 
 The debug page has no framework, styling system, dashboard, login screen or build
 step. It is an API test console. Its unlinked URL is not an authorization boundary.
@@ -100,7 +100,7 @@ backend/
   scripts/demo.py               temporary, complete no-AI API demo
   scripts/export_openapi.py     schema export
   tests/                       backend behavioral tests
-  Dockerfile, compose.yaml      API, worker, migration and local Postgres services
+  Dockerfile, compose.yaml      API, worker and migration services using Supabase
   pyproject.toml, uv.lock       Python dependencies and lockfile
   openapi.json                  generated frontend schema reference
 ml/, infra/                     original placeholders; pipeline lives in backend/
@@ -150,13 +150,16 @@ rationale. There is no independent reviewer-model loop.
 - Python 3.12 or newer and `uv` for the backend.
 - A browser. The debug frontend itself only needs Python's static HTTP server.
 - Node/npm and installed Google Chrome only if running frontend automated tests.
-- Docker is optional for the local Postgres/API/worker setup.
+- Docker is optional for running the API/worker against Supabase.
 - OpenAI and Mathpix credentials are optional; the manual workflow uses neither.
 
 ### Backend, identities and frontend
 
 From the repository root, copy `.env.example` to `.env` once. Do not overwrite an
-existing configured `.env` when repeating setup. Then:
+existing configured `.env` when repeating setup. Fill its Supabase placeholders using
+[the Supabase setup guide](backend/README.md#configure-supabase). For offline work,
+set `DATABASE_URL=sqlite:///./data/verity.db` and clear `S3_BUCKET` and the AWS
+credentials. Then:
 
 ```bash
 cd backend
@@ -206,7 +209,7 @@ link. Its relative assets work without bundling. Configure the API origin and CO
 for the destination environment. `noindex` metadata discourages indexing but does
 not grant or restrict access.
 
-### Optional local containers
+### Optional containers with Supabase
 
 After creating the root `.env`, run from the repository root:
 
@@ -214,9 +217,9 @@ After creating the root `.env`, run from the repository root:
 docker compose -f backend/compose.yaml up --build
 ```
 
-Compose starts Postgres, runs migrations, then starts the API and worker. The API
-binds to localhost:8000. Documents and database state use named volumes. The included
-database password is for this local development network; Postgres has no host port.
+Compose runs migrations against your configured Supabase database, then starts
+the API and worker. The API binds to localhost:8000. PDFs live in your private
+Supabase Storage bucket. Compose does not start a local Postgres service.
 Provision users inside the API container with `docker compose -f backend/compose.yaml
 exec api python -m verity.cli ...`. Run the static frontend separately as above.
 
@@ -436,12 +439,13 @@ settings. Frontend connection values are page inputs, not environment secrets.
 
 | Variable | Purpose / default |
 |---|---|
-| `DATABASE_URL` | `sqlite:///./data/verity.db`; deployment uses `postgresql+psycopg://...` |
+| `DATABASE_URL` | Supabase session-pooler/direct URI; generic Postgres schemes are accepted. Unconfigured runtime defaults to SQLite. |
 | `STORAGE_DIR` | `./data/documents` for private local PDFs |
-| `S3_BUCKET` | Empty by default; enables private S3 storage when set |
-| `S3_REGION` | `us-east-1` |
-| `S3_ENDPOINT_URL` | Optional S3-compatible endpoint |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Optional credentials; SDK credential chain/workload identity also supported |
+| `S3_BUCKET` | Supabase private bucket, `homework` in the template; empty selects local files |
+| `S3_REGION` | Copy your Supabase project region |
+| `S3_ENDPOINT_URL` | Supabase Storage S3 endpoint from its dashboard |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Supabase S3 access-key pair, loaded from `.env`; server-only |
+| `AWS_SESSION_TOKEN` | Empty for Supabase S3 keys; optional temporary S3 credential token |
 | `CORS_ORIGINS` | JSON array; `["http://localhost:3000"]` |
 | `EXTERNAL_AI_ENABLED` | Global external-call switch; `false` |
 | `OPENAI_API_KEY` | Server-only API key; empty by default |
@@ -561,8 +565,8 @@ not happen; retry with the same idempotency key or inspect the relevant records.
 
 A hosted installation needs an API service, separate worker, migrated Postgres,
 private storage, configured authentication, explicit CORS and an HTTPS frontend.
-Use the provided Dockerfile as the backend image. The Compose configuration is for
-local development. No cloud account, paid hosting or public website is provisioned
+Use the provided Dockerfile as the backend image. The Compose configuration runs the API and worker locally against
+Supabase Postgres and Storage. No cloud account, paid hosting or public website is provisioned
 by the repository. Configure/verify backup, retention/deletion, service monitoring
 and rate limiting before a real class deployment.
 
