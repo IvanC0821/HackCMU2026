@@ -14,6 +14,15 @@ export const sampleResult = {
     {id:'f2',questionId:'q3',category:'Notation error',message:'Some notation may be incomplete or ambiguous.',pageIndex:2,x:0.70,y:0.33}
   ]
 };
+// Explicitly fictional graded example; never applied to an uploaded submission.
+export const gradedExampleResult = {
+  source:'graded-example', estimatedScore:24, maxScore:30,
+  questions:[{id:'q1',score:10},{id:'q2',score:6},{id:'q3',score:8}],
+  findings:[
+    {id:'graded-induction',questionId:'q2',category:'Circular reasoning',message:'The next case is assumed rather than derived. Use the induction hypothesis to justify the transition to k + 1.',pageIndex:1,x:.32,y:.48597,kind:'line',boxes:[{x:.11111,y:.47441,width:.2235,height:.02313}],deduction:4,applied:true},
+    {id:'graded-domain',questionId:'q3',category:'Missing domain',message:'The condition k > 0 does not specify which values k can take. State the domain so the notation describes the intended set.',pageIndex:2,x:.265,y:.36225,kind:'line',boxes:[{x:.11111,y:.35068,width:.16971,height:.02313}],deduction:2,applied:true},
+  ],
+};
 export const emptyMapping = () => Object.fromEntries(assignment.questions.map(q=>[q.id,[]]));
 export function togglePage(mapping, question, page) {
   const pages = new Set(mapping[question] || []);

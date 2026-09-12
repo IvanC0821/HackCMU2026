@@ -83,3 +83,7 @@ The student feedback viewer places a small yellow circle at each saved normalize
 Only existing student-visible finding messages are displayed. Missing locations remain in the feedback sidebar without an invented PDF marker. Related-work and approximate-part anchors retain their location qualifiers. The original PDF bytes are unchanged.
 
 Run `npm run test:annotations --prefix frontend` from the repository root for the browser workflow; `npm test --prefix frontend/student` covers geometry, stable numbering, escaping, mapping, and revision behavior.
+
+## One-click graded example
+
+Choose **View graded example**, or open the standalone student viewer with `?example=graded`. The example immediately opens the existing three-page fictional PDF with its page assignments and applied deductions: Question 1 10/10, Question 2 6/10 (−4 circular reasoning), Question 3 8/10 (−2 missing domain), total 24/30. Yellow hint boxes and the feedback sidebar show each applied deduction. Positions are taken from the sample PDF text geometry. This fixture is saved locally once and never submits work or changes a course grade.

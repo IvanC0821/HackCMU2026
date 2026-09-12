@@ -54,6 +54,20 @@ try{
  await page.locator('.pdf-hint-box').first().scrollIntoViewIfNeeded();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'PDF scrolling stays inside its viewer on mobile');
  await page.screenshot({path:'/private/tmp/verity-annotations-mobile.png',fullPage:true});
+ await page.setViewportSize({width:1600,height:1000});
+ await page.goto(origin+'/?example=graded');
+ await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−4'}).waitFor();
+ assert.match(await page.locator('.estimate').innerText(),/24\s*\/ 30/);
+ assert.match(await page.locator('.estimate').innerText(),/Example grade/);
+ assert.match(await page.locator('.feedback-card').innerText(),/Applied/);
+ assert.match(await page.locator('.applied-deduction').innerText(),/−4/);
+ assert.match(await page.locator('.review-question[data-question="q2"]').innerText(),/6\s*\/ 10/);
+ await page.screenshot({path:'/private/tmp/verity-graded-example.png',fullPage:true});
+ await page.locator('.review-question[data-question="q3"]').click();
+ await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−2'}).waitFor();
+ assert.match(await page.locator('.review-question[data-question="q3"]').innerText(),/8\s*\/ 10/);
+ await page.reload();await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−4'}).waitFor();
+ assert.equal(await page.evaluate(async()=>{const {readRevisions}=await import('./storage.mjs');return (await readRevisions()).filter(r=>r.id==='graded-example-v1').length;}),1,'Reopening the example reuses its saved revision');
  assert.deepEqual(errors,[]);
  console.log('Annotation browser passed: persistent hints, exact circles, connected lines, measured non-overlapping boxes, zoom, page filtering, unknown locations, and mobile scrolling.');
 }catch(error){if(page)await page.screenshot({path:'/private/tmp/verity-annotations-failure.png',fullPage:true});throw error;}

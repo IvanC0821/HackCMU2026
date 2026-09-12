@@ -1,4 +1,4 @@
-import {assignment,emptyMapping,togglePage,mappingIssues,validatePdf,makeRevision,assessSubmission} from './model.mjs';
+import {assignment,emptyMapping,togglePage,mappingIssues,validatePdf,makeRevision,assessSubmission,gradedExampleResult} from './model.mjs';
 import {readRevisions,saveRevision} from './storage.mjs';
 import {located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup} from './annotations.mjs';
 const connected = location.pathname === '/student/';
@@ -26,6 +26,7 @@ function setAssignment(raw) {
  for (const key of ['title','course','code','subtitle']) assignment[key] = esc(assignment[key]);
  assignment.questions = raw.questions.map(q => ({...q, title:esc(q.title), prompt:esc(q.prompt)}));
 }
+const isGradedExample = () => state.result?.source === 'graded-example';
 const totalPoints = () => assignment.questions.reduce((n,q) => n + q.points, 0);
 const announce=t=>{$('#announcer').textContent=t;};
 const question=id=>assignment.questions.find(q=>q.id===id);
@@ -33,7 +34,7 @@ const fmtDate=value=>new Date(value).toLocaleString(undefined,{month:'short',day
 const pagesLabel=pages=>pages?.length?`${pages.length===1?'Page':'Pages'} ${pages.map(p=>p+1).join(', ')}`:'No pages selected';
 const btn=(label,action,kind='secondary',extra='')=>`<button class="button ${kind}" data-action="${action}" ${extra}>${label}</button>`;
 const errorHTML=()=>state.error?`<div class="error" role="alert">${icon('info')}<span>${esc(state.error)}</span></div>`:'';
-const mode=()=>`<span class="preview-label">${connected?'Connected to your course':state.sample?'Sample preview':'Local preview'}</span>`;
+const mode=()=>`<span class="preview-label">${connected?'Connected to your course':isGradedExample()?'Graded example':state.sample?'Sample preview':'Local preview'}</span>`;
 
 function sidebar(){return `<aside class="sidebar"><a href="#" class="brand" data-action="home" aria-label="Verity assignments"><span class="brand-symbol">${icon('check')}</span>verity</a>
   <div class="course-context"><span class="course-initials">DM</span><div><strong>${assignment.course}</strong><span>${assignment.code}</span></div></div>
@@ -44,7 +45,7 @@ function header(){
  const isReview=state.view==='review';
  if (connected && isReview) return `<header class="topbar"><div class="breadcrumbs">${assignment.course} / ${assignment.title}</div><div class="estimate"><div><span>${state.result?.reviewed?'Reviewed score':'Estimated score'}</span><strong>${state.result?.estimatedScore != null ? `${state.result.estimatedScore}<small> / ${state.result.maxScore}</small>` : 'Pending'}</strong></div><span class="estimate-caption">${state.result?.reviewed?'TA reviewed':'Provisional · staff review required'}</span></div></header>`;
  return `<header class="topbar"><div class="breadcrumbs"><button data-action="home">${icon('book')}<span>${assignment.course}</span></button>${icon('chevron')}<span>${state.view==='home'?'Assignments':assignment.title}</span></div>
- ${isReview?`<div class="estimate"><div><span>Estimated score</span><strong>${state.result?`${state.result.estimatedScore}<small> / ${state.result.maxScore}</small>`:'<span class="score-wait">Pending</span>'}</strong></div><span class="estimate-caption">${state.result?'Provisional · sample':'Not yet assessed'}</span></div>`:`<span class="student-label">Student view</span>`}</header>`;
+ ${isReview?`<div class="estimate"><div><span>${isGradedExample()?'Example grade':'Estimated score'}</span><strong>${state.result?`${state.result.estimatedScore}<small> / ${state.result.maxScore}</small>`:'<span class="score-wait">Pending</span>'}</strong></div><span class="estimate-caption">${isGradedExample()?'Graded example':state.result?'Provisional · sample':'Not yet assessed'}</span></div>`:`<span class="student-label">Student view</span>`}</header>`;
 }
 function steps(active){return `<ol class="steps" aria-label="Submission progress">${['Upload PDF','Assign pages','Review feedback'].map((name,i)=>`<li class="${i===active?'current':i<active?'complete':''}" ${i===active?'aria-current="step"':''}><span>${i<active?icon('check'):i+1}</span>${name}</li>`).join('')}</ol>`;}
 function home(){const latest=state.revisions[0];if(connected)return connectedHome(latest);return `<div class="content home-content"><div class="page-title"><div><p class="overline">${assignment.course}</p><h1>Your assignments</h1><p>Submit your work. Know what to revisit.</p></div>${mode()}</div>
@@ -54,7 +55,7 @@ function home(){const latest=state.revisions[0];if(connected)return connectedHom
  <td>${latest?`<span class="status neutral">${icon('check')}Saved locally</span><small class="cell-note">Version ${latest.number}</small>`:'<span class="status neutral">Not submitted</span>'}</td>
  <td>${latest?.result?'<span class="status amber"><span class="tiny-question">?</span>2 points to revisit</span>':latest?'Awaiting connection':'<span class="muted">—</span>'}</td>
  <td>${latest?btn(`View submission ${icon('arrow')}`,'latest','secondary'):btn(`Submit work ${icon('arrow')}`,'upload','primary')}</td></tr></tbody></table></div></div>
- <div class="assignment-bottom"><div>${icon('info')}<p>This is a local prototype. Your files stay in this browser; nothing is sent to your course.</p></div><button class="text-button" data-action="sample">Try sample homework ${icon('arrow')}</button></div>
+ <div class="assignment-bottom"><div>${icon('info')}<p>This is a local prototype. Your files stay in this browser; nothing is sent to your course.</p></div><div class="example-actions"><button class="button secondary" data-action="graded-example">View graded example</button><button class="text-button" data-action="sample">Try sample homework ${icon('arrow')}</button></div></div>
  <section class="expectations"><h2>Feedback that helps you ask better questions</h2><p>Look for yellow question marks on your work. They point to a possible issue and its general category, so you know what to revisit or bring to office hours.</p></section></div>`;}
 function upload(){if(connected)return connectedUpload();return `<div class="content upload-content">${steps(0)}<div class="page-title"><div><h1>Submit ${assignment.title.toLowerCase()}</h1><p>Upload your work, then tell us where each answer is.</p></div>${mode()}</div>${errorHTML()}
  <div class="upload-layout"><section class="upload-section"><div id="drop-zone" class="drop-zone" aria-label="PDF drop area"><div class="upload-glyph">${icon('upload')}</div><h2>${state.busy?'Opening your PDF…':'Drop your PDF here'}</h2><p>or choose a file from your computer</p>${btn('Choose PDF','choose','primary',state.busy?'disabled':'')}<span class="file-limit">PDF only · Up to 10 pages · 20 MB</span></div>
@@ -71,10 +72,10 @@ function feedbackBody(){
  if(state.busy)return `<div class="feedback-empty"><span class="spinner"></span><h3>${esc(state.progress||'Preparing feedback…')}</h3><p>${state.sample?'Loading the preset result for this fictional sample.':'Your submission is being processed.'}</p></div>`;
  if(!state.result)return `<div class="feedback-empty">${icon('clock')}<h3>Saved. Feedback is pending.</h3><p>Your PDF and page assignments are saved locally. Live grading isn’t connected in this preview.</p><p>No score or error markers have been generated for your file.</p>${btn('Retry connection','retry','secondary')}<button class="text-button" data-action="sample">Explore sample feedback ${icon('arrow')}</button></div>`;
  const findings=state.result.findings.filter(f=>f.questionId===state.question);
- return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':'No issues flagged'}</h2><p>${findings.length?'Yellow circles connect each marked location to its hint beside the page.':'There are no feedback markers for this question in the sample.'}</p></div>
- ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong><span class="possible">Possible issue</span></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))} ${icon('arrow')}</span></button>`).join('')}
+ return `<div class="feedback-intro"><h2>${isGradedExample()?'Applied deductions':findings.length?'A place to take another look':'No issues flagged'}</h2><p>${findings.length?'Yellow circles connect each marked location to its hint beside the page.':'There are no feedback markers for this question in the sample.'}</p></div>
+ ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong><span class="possible">${isGradedExample()?'Applied':'Possible issue'}</span>${f.applied&&Number.isFinite(f.deduction)?`<span class="applied-deduction"><span aria-hidden="true">✓</span> −${f.deduction}</span>`:''}</span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))} ${icon('arrow')}</span></button>`).join('')}
  <div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div>
- <div class="sample-disclaimer">Sample feedback is preset. It illustrates the experience, not a live model assessment.</div>`;
+ <div class="sample-disclaimer">${isGradedExample()?'Fictional graded example: 30 − 4 − 2 = 24. Deductions are preset and already applied.':'Sample feedback is preset. It illustrates the experience, not a live model assessment.'}</div>`;
 }
 function review(){const q=question(state.question);return `<div class="review-page"><div class="review-heading"><div><button class="text-button muted" data-action="home">${icon('back')}Assignments</button><h1>${assignment.title}</h1></div><div class="review-heading-actions">${mode()}<button class="button secondary" data-action="upload">${icon('upload')}Upload revision</button></div></div>
  ${errorHTML()}${state.storageWarning?`<div class="error">${esc(state.storageWarning)}</div>`:''}
@@ -86,7 +87,7 @@ function review(){const q=question(state.question);return `<div class="review-pa
  <div class="pdf-scroll" id="pdf-scroll"><div class="paper-wrapper" id="paper-wrapper"><canvas id="pdf-canvas" tabindex="-1" aria-label="Submitted work, page ${state.page+1}"></canvas><div id="annotation-highlights" class="annotation-highlights" aria-hidden="true"></div><div id="markers" class="markers"></div><div id="annotation-note" class="annotation-note"></div><p id="page-transcript" class="sr-only"></p></div></div>
  <div class="pdf-bottom"><div class="page-controls"><button class="icon-button" data-action="prev" aria-label="Previous page" ${state.page===0?'disabled':''}>${icon('back')}</button><label for="page-select" class="sr-only">PDF page</label><select id="page-select">${Array.from({length:state.pdf?.numPages||0},(_,i)=>`<option value="${i}" ${state.page===i?'selected':''}>Page ${i+1} of ${state.pdf.numPages}</option>`).join('')}</select><button class="icon-button" data-action="next" aria-label="Next page" ${state.page>=(state.pdf?.numPages||1)-1?'disabled':''}>${icon('arrow')}</button></div><div class="zoom-controls"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.75?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=2?'disabled':''}>${icon('plus')}</button></div></div></section>
  <aside class="feedback-panel"><div class="feedback-tabs"><button class="${state.tab==='feedback'?'active':''}" data-tab="feedback">Feedback</button><button class="${state.tab==='question'?'active':''}" data-tab="question">Question</button></div><div class="feedback-question-label"><span>Question ${q.number}</span><span>${q.points} points</span></div><div id="feedback-body">${state.tab==='feedback'?feedbackBody():`<div class="question-details"><h2>${q.title}</h2><p>${q.prompt}</p><div class="local-note">${icon('info')}<p>Feedback identifies the type of issue without showing a worked solution.</p></div></div>`}</div></aside></div>
- <div class="review-footer"><span>${icon(state.busy?'clock':'check')}${state.busy?esc(state.progress):`Version ${state.revision?.number||1} saved ${state.storageWarning?'for this session':'locally'}`}</span><span>${state.result?'Estimated scores may change after instructor review.':'Your original PDF is preserved.'}</span></div></div>`;}
+ <div class="review-footer"><span>${icon(state.busy?'clock':'check')}${state.busy?esc(state.progress):`Version ${state.revision?.number||1} saved ${state.storageWarning?'for this session':'locally'}`}</span><span>${isGradedExample()?'Fictional example · 30 − 4 − 2 = 24':state.result?'Estimated scores may change after instructor review.':'Your original PDF is preserved.'}</span></div></div>`;}
 
 function render({focus=false}={}) {
  pageRenderTask?.cancel();
@@ -131,6 +132,21 @@ async function loadSample(){
  if(state.busy)return;
  try {const r=await fetch('./assets/sample-homework.pdf');if(!r.ok)throw Error();await loadFile(new File([await r.blob()],'sample-homework.pdf',{type:'application/pdf'}),{sample:true});}
  catch {state.error='The sample PDF could not be loaded. Try again, or choose your own PDF.';state.view='upload';render();}
+}
+async function loadGradedExample(){
+ if(connected||state.busy)return;
+ const existing=state.revisions.find(r=>r.id==='graded-example-v1');
+ if(existing){await restore(existing.id);return;}
+ state.busy=true;
+ try{
+  const response=await fetch('./assets/sample-homework.pdf');if(!response.ok)throw Error();
+  const bytes=await response.arrayBuffer();
+  const revision=makeRevision({fileName:'Graded example — Homework 1.pdf',bytes,mapping:{q1:[0],q2:[1],q3:[2]},result:gradedExampleResult,number:Math.max(0,...state.revisions.map(r=>r.number))+1,sample:true});
+  revision.id='graded-example-v1';
+  state.revisions.unshift(revision);
+  try{await saveRevision(revision);}catch{state.storageWarning='Example is available for this session only.';}
+  state.busy=false;await restore(revision.id);
+ }catch{state.error='The graded example could not be opened. Try again.';state.busy=false;render();}
 }
 async function drawThumbs(){
  const epoch=drawEpoch;
@@ -249,6 +265,7 @@ async function action(name){
  if(name==='upload'){state.view='upload';render({focus:true});return;}
  if(name==='choose'){$('#file-input').click();return;}
  if(name==='sample'){await loadSample();return;}
+ if(name==='graded-example'){await loadGradedExample();return;}
  if(name==='submit'){await submit();return;}
  if(name==='latest'){await restore(state.revisions[0]?.id);return;}
  if(name==='retry'){state.error='Live grading is not connected yet. Your PDF and page assignments are still saved locally.';render();return;}
@@ -289,10 +306,10 @@ if(connected){
  $('#app').textContent='Connecting to your course…';
  try{await requireRole('student');addSignOut();await syncStudent(true);setInterval(syncStudent,1500);state.loaded=true;}
  catch(e){if(!$('#app a')){$('#app').textContent=e.message;}}
-}else{render();try{state.revisions=await readRevisions();}catch{state.storageWarning='Browser storage is unavailable.';}state.loaded=true;if(state.view==='home')render();}
+}else{render();try{state.revisions=await readRevisions();}catch{state.storageWarning='Browser storage is unavailable.';}state.loaded=true;if(state.view==='home')render();if(new URLSearchParams(location.search).get('example')==='graded')await loadGradedExample();}
 
 function connectedHome(latest) {
- return `<div class="content home-content"><div class="page-title"><div><p class="overline">Your course</p><h1>Your assignments</h1><p>Published homework and your submission history, in one place.</p></div>${mode()}</div>${errorHTML()}${state.storageWarning?`<p role="status">${esc(state.storageWarning)}</p>`:''}
+ return `<div class="content home-content"><div class="page-title"><div><p class="overline">Your course</p><h1>Your assignments</h1><p>Published homework and your submission history, in one place.</p></div>${mode()}</div>${errorHTML()}<a class="text-button" href="/student-assets/index.html?example=graded">View graded example</a>${state.storageWarning?`<p role="status">${esc(state.storageWarning)}</p>`:''}
  ${currentAssignment?`<section class="assignment-list"><div class="list-heading"><h2>${assignment.title}</h2><span>${assignment.subtitle}</span></div><div style="padding:24px"><p>${assignment.questions.length} question${assignment.questions.length===1?'':'s'} · ${totalPoints()} points</p><p>${latest?`Version ${latest.number} · ${latest.final?'Handed in':'Practice saved'} · ${latest.result?.estimatedScore!=null?`${latest.result.estimatedScore} / ${latest.result.maxScore}`:'Feedback pending'}`:'No submissions yet'}</p><div class="footer-actions">${btn('Upload your work','upload','primary')}${latest?btn('View submission','latest'):''}${assignment.blank?btn('Download questions','blank'):''}</div></div></section><div class="assignment-bottom"><div>${icon('info')}<p>Your TA receives your submitted PDF and page selections. You see only your own work and general feedback.</p></div></div>`:`<section class="assignment-list" style="padding:28px"><h2>No homework published yet</h2><p>Your professor is preparing the assignment. It will appear here automatically when published.</p></section>`}</div>`;
 }
 function connectedUpload() {
