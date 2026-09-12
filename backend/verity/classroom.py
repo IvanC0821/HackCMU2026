@@ -21,6 +21,7 @@ from .auth import bearer, course_role, current_user, require_staff
 from .config import settings
 from .db import Base, get_db
 from .models import Document, User
+from .pdf_annotations import FEEDBACK, public_anchor
 
 
 class Classroom(Base):
@@ -165,10 +166,11 @@ def student_attempt(state, attempt):
                     .replace(" error", ""),
                     ("Work to revisit", "Review your work on this question with your TA."),
                 )
+                category, message = FEEDBACK.get(result.get("feedbackCode"), (category, message))
                 # No private rubric labels, rationales, expected answers or invented PDF coordinates.
                 findings.append(
                     {
-                        "id": f"{q['id']}:finding-{len(findings) + 1}",
+                        "id": f"{q['id']}:{criterion['id']}",
                         "questionId": q["id"],
                         "category": category,
                         "message": message,
@@ -176,17 +178,9 @@ def student_attempt(state, attempt):
                         "scope": "question",
                     }
                 )
-                anchor = result.get("anchor")
-                if (
-                    isinstance(anchor, dict)
-                    and type(anchor.get("pageIndex")) is int
-                    and anchor.get("pageIndex", -1) + 1 in review.get("pages", [])
-                    and all(
-                        isinstance(anchor.get(k), (int, float)) and 0 <= anchor[k] <= 1
-                        for k in ("x", "y")
-                    )
-                ):
-                    findings[-1].update({k: anchor[k] for k in ("pageIndex", "x", "y")})
+                anchor = public_anchor(result.get("anchor"), review.get("pages", []))
+                if anchor:
+                    findings[-1].update(anchor)
                     findings[-1]["scope"] = "location"
         questions.append({"id": q["id"], "score": round(score, 2) if resolved else None})
     complete = all(q["score"] is not None for q in questions)

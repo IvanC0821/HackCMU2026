@@ -36,9 +36,20 @@ squaring in 2(f), and the no-solutions claim in 5(c). His valid determinant meth
 in 6(b) received full credit. Students receive only general categories, not these
 staff explanations or worked answers.
 
-Wesley has four evidence-matched yellow PDF markers. Hiro's feedback remains at
-question level: absent row-operation labels have no precise location, and the
-suggested rank quote did not validate on the suggested page. No location was invented.
+The PDF annotation update locates all six deductions in the two new submissions.
+Hiro's 3(a) marker highlights the related elimination work on page 3 (missing labels
+have no incorrect symbol). His rank statement is matched on actual page 6, rather
+than trusting the model's suggested page. Wesley has four matched-line markers on
+pages 1, 1, 3 and 6. Click/hover/focus opens a solution-free explanation on the paper.
+Escape dismisses it; highlights and pins scale with zoom.
+
+Across all 12 students, 75 deductions have 5 matched-line anchors, 14 related-work
+anchors, 49 subpart-only anchors and 7 unlocated findings. Historical professor
+records generally lack quoted evidence, so a subpart location is explicitly labeled
+as contextual, not an exact mistaken line. Ambiguous or absent text gets no fake pin.
+Geometry comes from native PDF glyph bounds and rotation/crop transforms, following
+[PyMuPDF's coordinate conventions](https://pymupdf.readthedocs.io/en/latest/page.html).
+No scores, original PDFs, model responses or human review decisions were changed.
 
 ## Blind input and provenance
 
@@ -55,6 +66,8 @@ Provider-reported total: 143,263 tokens. Monetary billing was not measured.
 Server validation requires every part once, half-point bands within the maximum,
 and server-summed totals. Unreadable work may remain unresolved. Quoted locations
 must match unique PDF text on a mapped page before becoming a student-visible pin.
+Contextual pins instead require a detected question/subpart on a mapped page and
+are labeled separately. Private quoted evidence is never included in student JSON.
 Structured parsing follows the [official API guidance](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 Full raw responses and their hashes are retained in ignored local
@@ -83,6 +96,10 @@ Re-running the importer preserves the current dataset and existing reviews. It d
 not duplicate students, overwrite TA edits or automatically repeat paid requests.
 Switch student using the top selector; open **View submission**. In the teacher
 tab, open **Homework 1 → Review queue** or **Overview** for the chart.
+
+For an existing database, `uv run python refresh_classroom_annotations.py` refreshes
+only feedback/location metadata. It checks the stored PDF hash, preserves attempt
+history and grades, and is idempotent. Restart the local server after updating code.
 
 ## Remaining limits
 

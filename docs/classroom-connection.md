@@ -6,6 +6,20 @@ tags: [integration, contract]
 
 # Connected classroom contract
 
+## PDF-local feedback amendment (Ivan, 2026-09-12)
+
+Feedback is attached to actual student-PDF geometry, with a clickable yellow icon,
+highlighted text/work region and a short on-paper explanation. `anchor.boxes` uses
+normalized coordinates in the displayed (rotation-applied) crop box. `anchor.kind`
+distinguishes a verified `line` quote from surrounding `work` or a `part` region;
+missing steps are never presented as an incorrect quoted line. Quotes may be found
+on any mapped page, but ambiguous matches are not guessed. Header/part detection
+provides a contextual fallback only when that structure exists in the PDF.
+Unlocatable/image-only work remains explicitly unlocated, pending OCR/staff help.
+The student projection exposes only validated geometry and allowlisted feedback
+codes, never staff explanations, expected answers, evidence quotes or hidden keys.
+Refresh annotations without regrading, modifying source PDFs, or changing scores.
+
 ## Dataset pilot amendment (Ivan, 2026-09-12)
 
 The labeled `demo-data` files may replace the active local classroom after archiving

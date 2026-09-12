@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from .classroom import Classroom, mutate, now
 from .classroom_dataset import MAXIMA, band_id, grade_parts, pdf_text, source_paths
 from .config import settings
+from .pdf_annotations import PDFLocator, feedback_code
 
 
 class PartAssessment(BaseModel):
@@ -192,6 +193,7 @@ def apply_assessment(db, root, result):
     if hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
         raise ValueError("Target PDF changed during grading")
     with pymupdf.open(target) as doc:
+        locator = PDFLocator(doc)
         for part in assessment.parts:
             review = attempt["questions"][f"q{part.part_id[0]}"]
             previous = review["results"][part.part_id]
@@ -200,6 +202,7 @@ def apply_assessment(db, root, result):
                     "TA edited this result while the grader was running; retain raw result for review"
                 )
             band = band_id(part.points) if part.points is not None else None
+            code = feedback_code({"category": part.category, "evidence": part.staff_reason})
             review["results"][part.part_id] = {
                 "band": band,
                 "proposed": band,
@@ -208,7 +211,11 @@ def apply_assessment(db, root, result):
                 "category": part.category,
                 "unclear": part.points is None,
                 "dispute": None,
-                "anchor": anchored_quote(doc, part, review["pages"])
+                "feedbackCode": code,
+                "locationEvidence": {"quote": part.evidence_quote, "pageIndex": part.page_index},
+                "anchor": locator.locate(
+                    int(part.part_id[0]), part.part_id, review["pages"], part.evidence_quote, code
+                )
                 if part.points is not None and part.points < MAXIMA[part.part_id]
                 else None,
             }

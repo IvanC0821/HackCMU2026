@@ -7,7 +7,8 @@ import pytest
 from sqlalchemy import func, select
 from test_classroom import classroom, js  # noqa: F401
 
-from verity.classroom import app
+from verity.classroom import Classroom, app
+from verity.classroom_annotations import refresh_annotations
 from verity.classroom_dataset import MAXIMA, import_dataset
 from verity.classroom_pilot import (
     PartAssessment,
@@ -129,7 +130,10 @@ def test_complete_import_live_result_projection_and_roster(classroom, tmp_path, 
     assert projection["findings"][0]["category"] == "Logic error"
     assert "PRIVATE TEST" not in json.dumps(after)
     assert "instructions" not in json.dumps(after) and "staff_reason" not in json.dumps(after)
-    assert not any("x" in f for f in projection["findings"])
+    # No quoted line: locate the real subpart without claiming an exact error.
+    assert projection["findings"][0]["kind"] == "part"
+    assert projection["findings"][0]["boxes"]
+    assert "locationEvidence" not in json.dumps(after)
     scores = js(
         "import {scoreAttempt,activeRubric} from './frontend/staff/model.mjs';let s='';for await(const c of process.stdin)s+=c;const w=JSON.parse(s);console.log(JSON.stringify(w.submissions.map(s=>scoreAttempt(activeRubric(w),s.attempts[0]))));",
         updated,
@@ -162,6 +166,28 @@ def test_complete_import_live_result_projection_and_roster(classroom, tmp_path, 
         q["firstN"] == 12 and q["latestN"] == 12 and q["first"] == q["latest"]
         for q in chart["questions"]
     )
+    with env["factory"]() as db:
+        untouched = deepcopy(db.get(Classroom, "classroom").state)
+        counts = refresh_annotations(db, DATA / "06_recorded_ai_test")
+        db.commit()
+    with env["factory"]() as db:
+        refreshed = deepcopy(db.get(Classroom, "classroom").state)
+        assert refresh_annotations(db, DATA / "06_recorded_ai_test") == counts
+        db.commit()
+        db.expire_all()
+        assert db.get(Classroom, "classroom").state == refreshed
+    # Refresh may add location metadata, but never change grades, decisions,
+    # history, mappings, immutable document references or raw response hashes.
+    for version in (untouched, refreshed):
+        for key in ("revision", "updatedAt", "log"):
+            version.pop(key)
+        for student in version["submissions"]:
+            for attempt in student["attempts"]:
+                for question in attempt["questions"].values():
+                    for result in question["results"].values():
+                        for key in ("anchor", "locationEvidence", "feedbackCode"):
+                            result.pop(key, None)
+    assert untouched == refreshed
     monkeypatch.setattr(app.state, "open_demo", False)
     assert client.get("/classroom/demo").json() == {"enabled": False}
     assert client.get("/classroom/student", headers=headers).status_code == 401

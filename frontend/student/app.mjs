@@ -1,5 +1,6 @@
 import {assignment,emptyMapping,togglePage,mappingIssues,validatePdf,makeRevision,assessSubmission} from './model.mjs';
 import {readRevisions,saveRevision} from './storage.mjs';
+import {located, locationLabel, layoutMarkers, markerMarkup, detailMarkup} from './annotations.mjs';
 const connected = location.pathname === '/student/';
 const {requireRole, addSignOut, fetchStudent, submitStudent, revisionBytes, post, request} = connected ? await import('../connected/client.mjs') : {};
 
@@ -79,10 +80,10 @@ function review(){const q=question(state.question);return `<div class="review-pa
  ${errorHTML()}${state.storageWarning?`<div class="error">${esc(state.storageWarning)}</div>`:''}
  <div class="mobile-switch" aria-label="Workspace view"><button class="${state.mobilePanel==='document'?'active':''}" data-panel="document">${icon('file')}Document</button><button class="${state.mobilePanel==='feedback'?'active':''}" data-panel="feedback">${icon('chat')}Feedback</button></div>
  <div class="review-grid" data-mobile-panel="${state.mobilePanel}"><aside class="review-questions"><div class="section-heading"><h2>Questions</h2><span>${totalPoints()} pts</span></div>
- ${assignment.questions.map(item=>{const findings=state.result?.findings.filter(f=>f.questionId===item.id)||[];const score=state.result?.questions.find(q=>q.id===item.id);return `<button class="review-question ${state.question===item.id?'selected':''}" data-question="${item.id}" aria-pressed="${state.question===item.id}"><span class="review-question-top"><strong>Question ${item.number}</strong>${score?`<span>${score.score}<small> / ${item.points}</small></span>`:'<span class="muted">—</span>'}</span><span class="question-topic">${item.title}</span><span class="review-question-status">${findings.length?'<span class="tiny-question">?</span>Possible issue':state.result?`${icon('check')}No issues flagged`:`${icon('clock')}Awaiting feedback`}</span><span class="assigned-pages">${pagesLabel(state.mapping[item.id])}</span></button>`;}).join('')}
+ ${assignment.questions.map(item=>{const findings=state.result?.findings.filter(f=>f.questionId===item.id)||[];const score=state.result?.questions.find(q=>q.id===item.id);return `<button class="review-question ${state.question===item.id?'selected':''}" data-question="${item.id}" aria-pressed="${state.question===item.id}"><span class="review-question-top"><strong>Question ${item.number}</strong>${score?`<span>${score.score}<small> / ${item.points}</small></span>`:'<span class="muted">—</span>'}</span><span class="question-topic">${item.title}</span><span class="review-question-status">${findings.length?`${findings.length} PDF note${findings.length===1?'':'s'}`:state.result?`${icon('check')}No issues flagged`:`${icon('clock')}Awaiting feedback`}</span><span class="assigned-pages">${pagesLabel(state.mapping[item.id])}</span></button>`;}).join('')}
  <button class="text-button edit-pages" data-action="remap">${icon('layers')}Edit page assignments</button><div class="version-nav"><label for="revision-select">Submission history</label><select id="revision-select" ${state.busy?'disabled':''}>${state.revisions.map(r=>`<option value="${r.id}" ${r.id===state.revision?.id?'selected':''}>Version ${r.number}${r.sample?' · Sample':''}</option>`).join('')}</select><small>${state.revision?fmtDate(state.revision.createdAt):''}</small></div></aside>
  <section class="pdf-section" aria-label="Submitted PDF"><div class="pdf-toolbar"><span class="pdf-name" title="${esc(state.fileName)}">${icon('file')}${esc(state.fileName)}</span><button class="icon-button" data-action="download" aria-label="Download submitted PDF">${icon('down')}</button></div>
- <div class="pdf-scroll" id="pdf-scroll"><div class="paper-wrapper" id="paper-wrapper"><canvas id="pdf-canvas" aria-label="Submitted work, page ${state.page+1}"></canvas><div id="markers" class="markers"></div><p id="page-transcript" class="sr-only"></p></div></div>
+ <div class="pdf-scroll" id="pdf-scroll"><div class="paper-wrapper" id="paper-wrapper"><canvas id="pdf-canvas" tabindex="-1" aria-label="Submitted work, page ${state.page+1}"></canvas><div id="annotation-highlights" class="annotation-highlights" aria-hidden="true"></div><div id="markers" class="markers"></div><div id="annotation-note" class="annotation-note"></div><p id="page-transcript" class="sr-only"></p></div></div>
  <div class="pdf-bottom"><div class="page-controls"><button class="icon-button" data-action="prev" aria-label="Previous page" ${state.page===0?'disabled':''}>${icon('back')}</button><label for="page-select" class="sr-only">PDF page</label><select id="page-select">${Array.from({length:state.pdf?.numPages||0},(_,i)=>`<option value="${i}" ${state.page===i?'selected':''}>Page ${i+1} of ${state.pdf.numPages}</option>`).join('')}</select><button class="icon-button" data-action="next" aria-label="Next page" ${state.page>=(state.pdf?.numPages||1)-1?'disabled':''}>${icon('arrow')}</button></div><div class="zoom-controls"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.75?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=2?'disabled':''}>${icon('plus')}</button></div></div></section>
  <aside class="feedback-panel"><div class="feedback-tabs"><button class="${state.tab==='feedback'?'active':''}" data-tab="feedback">Feedback</button><button class="${state.tab==='question'?'active':''}" data-tab="question">Question</button></div><div class="feedback-question-label"><span>Question ${q.number}</span><span>${q.points} points</span></div><div id="feedback-body">${state.tab==='feedback'?feedbackBody():`<div class="question-details"><h2>${q.title}</h2><p>${q.prompt}</p><div class="local-note">${icon('info')}<p>Feedback identifies the type of issue without showing a worked solution.</p></div></div>`}</div></aside></div>
  <div class="review-footer"><span>${icon(state.busy?'clock':'check')}${state.busy?esc(state.progress):`Version ${state.revision?.number||1} saved ${state.storageWarning?'for this session':'locally'}`}</span><span>${state.result?'Estimated scores may change after instructor review.':'Your original PDF is preserved.'}</span></div></div>`;}
@@ -163,17 +164,39 @@ async function drawPage(){
 }
 function paintMarkers(){
  const target=$('#markers');if(!target)return;
- target.innerHTML=(state.result?.findings||[]).filter(f=>f.pageIndex===state.page&&Number.isFinite(f.x)&&Number.isFinite(f.y)).map(f=>`<button class="paper-marker ${state.activeFinding===f.id?'selected':''}" style="left:${f.x*100}%;top:${f.y*100}%" data-marker="${f.id}" aria-label="Question ${question(f.questionId).number}: possible ${esc(f.category.toLowerCase())}" aria-pressed="${state.activeFinding===f.id}"><span>?</span></button>`).join('');
+ const wrapper=$('#paper-wrapper');
+ const placements=layoutMarkers(state.result?.findings||[],state.page,wrapper.clientWidth,wrapper.clientHeight);
+ target.innerHTML=markerMarkup(placements,state.activeFinding);
+ paintAnnotationDetail();
+}
+function paintAnnotationDetail(){
+ const wrapper=$('#paper-wrapper');if(!wrapper)return;
+ const placements=layoutMarkers(state.result?.findings||[],state.page,wrapper.clientWidth,wrapper.clientHeight);
+ const placement=placements.find(p=>p.finding.id===state.activeFinding);
+ const detail=detailMarkup(placement?.finding,placement,wrapper.clientWidth,wrapper.clientHeight);
+ $('#annotation-highlights').innerHTML=detail.highlights;
+ $('#annotation-note').innerHTML=detail.note;
+}
+function closeAnnotation(){
+ const previous=state.activeFinding;state.activeFinding=null;
+ paintAnnotationDetail();
+ document.querySelectorAll('[data-marker]').forEach(el=>{el.classList.remove('selected');el.setAttribute('aria-pressed','false');el.setAttribute('aria-expanded','false');});
+ document.querySelectorAll('[data-finding]').forEach(el=>el.classList.remove('selected'));
+ // Focusing a marker opens feedback; restore focus to the viewer instead on dismissal.
+ if(previous)$('#pdf-canvas')?.focus({preventScroll:true});
 }
 function activateFinding(id,{navigate=false}={}){
  const f=state.result?.findings.find(item=>item.id===id);if(!f)return;
  const changeQuestion=state.question!==f.questionId;
+ const changePanel=navigate&&located(f)&&state.mobilePanel!=='document';
  state.activeFinding=id;state.question=f.questionId;state.tab='feedback';
- if(navigate&&state.page!==f.pageIndex){state.page=f.pageIndex;render();return;}
- if(changeQuestion){render();return;}
+ if(navigate&&located(f))state.mobilePanel='document';
+ if(navigate&&located(f)&&state.page!==f.pageIndex){state.page=f.pageIndex;render();return;}
+ if(changeQuestion||changePanel){render();return;}
  $('#feedback-body').innerHTML=feedbackBody();
  document.querySelectorAll('[data-tab]').forEach(el=>el.classList.toggle('active',el.dataset.tab==='feedback'));
- document.querySelectorAll('[data-marker]').forEach(el=>{const active=el.dataset.marker===id;el.classList.toggle('selected',active);el.setAttribute('aria-pressed',String(active));});
+ document.querySelectorAll('[data-marker]').forEach(el=>{const active=el.dataset.marker===id;el.classList.toggle('selected',active);el.setAttribute('aria-pressed',String(active));el.setAttribute('aria-expanded',String(active));});
+ paintAnnotationDetail();
  announce(`${f.category}. ${f.message}`);
 }
 async function submit(){
@@ -230,16 +253,18 @@ async function action(name){
  render();document.querySelector(`[data-action="${name}"]`)?.focus({preventScroll:true});
 }
 document.addEventListener('click',event=>{
+ if(event.target.closest('[data-annotation-close]')){closeAnnotation();return;}
  const el=event.target.closest('[data-action],[data-question],[data-finding],[data-marker],[data-tab],[data-panel]');if(!el||el.disabled)return;
  if(el.dataset.action){event.preventDefault();action(el.dataset.action);return;}
  if(el.dataset.question){state.question=el.dataset.question;state.activeFinding=null;if(state.view==='review'){const f=state.result?.findings.find(f=>f.questionId===state.question);state.page=f?.pageIndex??state.mapping[state.question]?.[0]??0;state.activeFinding=f?.id||null;}render();document.querySelector(`[data-question="${state.question}"]`)?.focus({preventScroll:true});}
  if(el.dataset.finding)activateFinding(el.dataset.finding,{navigate:true});
- if(el.dataset.marker){activateFinding(el.dataset.marker);if(innerWidth<1000){state.mobilePanel='feedback';render();}}
+ if(el.dataset.marker)activateFinding(el.dataset.marker);
  if(el.dataset.tab){state.tab=el.dataset.tab;render();document.querySelector(`[data-tab="${state.tab}"]`)?.focus({preventScroll:true});}
  if(el.dataset.panel){state.mobilePanel=el.dataset.panel;render();document.querySelector(`[data-panel="${state.mobilePanel}"]`)?.focus({preventScroll:true});}
 });
 document.addEventListener('pointerover',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker);});
 document.addEventListener('focusin',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker);});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.activeFinding){event.preventDefault();closeAnnotation();}});
 document.addEventListener('change',event=>{
  const el=event.target;
  if(el.id==='file-input'){const file=el.files[0];el.value='';if(file)loadFile(file);}
@@ -270,7 +295,7 @@ function connectedFeedback() {
  if(!state.result)return `<div class="feedback-empty">${icon('clock')}<h3>Saved to your course</h3><p>Your PDF and page assignments are available to your TA. Feedback will appear here automatically.</p><p>Live AI grading is not enabled. No score or error locations have been invented for this file.</p></div>`;
  const findings=state.result.findings.filter(f=>f.questionId===state.question);
  const scored=state.result.questions.find(q=>q.id===state.question)?.score!=null;
- return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':scored?'No issues flagged':'This question is pending'}</h2><p>${findings.length?'General feedback from your course rubric.':'Your TA reviews the original work.'}</p></div>${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}"><span class="feedback-card-top"><span class="question-mark">?</span><strong>${esc(f.category)}</strong></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${f.scope==='location'?`Marked on page ${f.pageIndex+1}`:`Question-level feedback · ${pagesLabel(state.mapping[f.questionId])}`}</span></button>`).join('')}<div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div><div class="sample-disclaimer">${state.result.source==='ai-recorded'?'Recorded AI estimate · ':state.result.source==='ai'?'AI estimate · ':''}${state.result.reviewed?(state.result.source==='professor-import'?'Imported professor grade.':'Reviewed by your TA.'):'Provisional until TA review.'} Staff solutions and private grading notes are not shared.</div>`;
+ return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':scored?'No issues flagged':'This question is pending'}</h2><p>${findings.length?'Click a yellow marker on your PDF to inspect the related work.':'Your TA reviews the original work.'}</p></div>${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}"><span class="feedback-card-top"><span class="question-mark">?</span><strong>${esc(f.category)}</strong></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))}</span></button>`).join('')}<div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div><div class="sample-disclaimer">${state.result.source==='ai-recorded'?'Recorded AI estimate · ':state.result.source==='ai'?'AI estimate · ':''}${state.result.reviewed?(state.result.source==='professor-import'?'Imported professor grade.':'Reviewed by your TA.'):'Provisional until TA review.'} Staff solutions and private grading notes are not shared.</div>`;
 }
 async function connectedSubmit() {
  if(state.busy||!state.pdf)return;

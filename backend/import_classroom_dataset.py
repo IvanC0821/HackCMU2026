@@ -20,6 +20,7 @@ def main():
     )
     args = parser.parse_args()
     provision()
+    from verity.classroom_annotations import refresh_annotations
     from verity.classroom_dataset import import_dataset
     from verity.classroom_pilot import apply_assessment, assess, compare_hidden, grading_context
     from verity.db import SessionLocal
@@ -44,6 +45,9 @@ def main():
             ),
             flush=True,
         )
+    with SessionLocal() as db:
+        refresh_annotations(db, root / "06_recorded_ai_test")
+        db.commit()
     if args.replay_recorded:
         for path in sorted((root / "06_recorded_ai_test").glob("*-result.json")):
             result = json.loads(path.read_text())
