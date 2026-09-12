@@ -507,6 +507,9 @@ def staff_asset(name: str):
         "case-view.mjs",
         "row-check.mjs",
         "styles.css",
+        "solution-crops.mjs",
+        "rubric-pdf.mjs",
+        "rubric-studio.mjs",
     }:
         raise HTTPException(404)
     return FileResponse(

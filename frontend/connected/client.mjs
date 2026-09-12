@@ -75,10 +75,17 @@ export async function openRemoteStore() {
           try { Object.assign(d, await docCache.get(d.id)); }
           catch (e) { docCache.delete(d.id); throw e; }
         }
-        delete d.blob; delete d.path; d.sample = false;
+        delete d.blob; delete d.path;
+        if (d.sample === true) d.sample = false;
       }
-      await json('/workspace', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({state: copy, expectedRevision})});
-      return this.load();
+      const saved = await json('/workspace', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({state: copy, expectedRevision})});
+      // Use the acknowledged write, not a follow-up read that may observe an
+      // older revision or another editor's later changes while this save finishes.
+      for (const d of documents(saved)) {
+        const cached = docCache.get(d.id);
+        if (cached) d.blob = (await cached).blob;
+      }
+      return saved;
     },
     close() {},
   };

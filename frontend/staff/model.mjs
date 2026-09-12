@@ -1,3 +1,4 @@
+import {solutionCropErrors, gradingSignature} from './solution-crops.mjs';
 export const STAFF_SCHEMA = 1;
 export const clone = value => structuredClone(value);
 export const cents = n => Math.round(Number(n) * 100);
@@ -46,6 +47,7 @@ export function validateDraft(s) {
       if (!q[field]?.length || q[field].some(p => !Number.isInteger(p) || p < 1 || (doc?.pageCount && p > doc.pageCount))) errors.push(`${prefix} needs valid ${field === 'assignmentPages' ? 'assignment' : 'solution'} pages.`);
     }
     if (!q.criteria.length) errors.push(`${prefix} needs a grading criterion.`);
+    errors.push(...solutionCropErrors(q, s.documents.solution).map(error => `${prefix}: ${error}`));
     const criterionIds = new Set();
     for (const c of q.criteria) {
       if (!c.id || criterionIds.has(c.id)) errors.push(`${prefix} has duplicate criterion IDs.`);
@@ -73,8 +75,8 @@ export function publishDraft(s) {
   const errors = validateDraft(s); if (errors.length) throw new Error(errors.join(' '));
   if (!s.dirty && activeRubric(s)) throw new Error('There are no rubric changes to finalize.');
   const version = {id: s.versions.length + 1, questions: clone(s.draft), instructions: s.instructions, documents: clone(s.documents), source: s.source, at: now(),
-    sampleCompatible: s.source === 'sample' && JSON.stringify(s.draft) === JSON.stringify(sampleQuestions),
-    caseCompatible: s.source === 'row-case' && s.caseSignature === JSON.stringify(s.draft) && s.instructions === s.caseInstructions};
+    sampleCompatible: s.source === 'sample' && gradingSignature(s.draft) === gradingSignature(sampleQuestions),
+    caseCompatible: s.source === 'row-case' && s.caseSignature === gradingSignature(s.draft) && s.instructions === s.caseInstructions};
   s.versions.push(version); s.dirty = false;
   record(s, 'Rubric finalized locally', `Standard v${version.id}; previous reviews remain unchanged.`);
   return version;

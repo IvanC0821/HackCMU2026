@@ -13,13 +13,14 @@ Project context: [[HackCMU 2026 Grading Copilot]].
 From this repository's `frontend/` directory:
 
 ```sh
+npm install --prefix student
 npm run start:staff
 ```
 
-Open http://127.0.0.1:3003. No install is required for the app or unit tests.
+Open http://127.0.0.1:3003. The PDF canvas uses the same local PDF.js dependency as the student viewer. Unit tests need no browser.
 Alternatively `npm run build` makes `frontend/preview.html`, a directly openable
-single-page app. Keep it beside `output/pdf/` for the reference links. Browser
-file-origin storage and PDF embedding support vary; localhost is preferred.
+single-page app. Keep it beside `output/pdf/` and `student/node_modules/`. Serve it
+over localhost for the PDF canvas; browsers restrict PDF.js modules on file URLs.
 
 ## Rehearse
 
@@ -96,3 +97,36 @@ python tools/row_case_pdfs.py
 
 Use a Python environment with ReportLab and system Poppler. Recheck all rendered
 pages before using the PDF assets. PDF source data comes from the same case module.
+
+## Rubric authoring and answer excerpts
+
+Open **Grading standards**. The solution PDF stays on the left while the right
+panel switches between **Questions & deductions** and **Reference PDFs**. Add a
+question, edit its requirements and scoring outcomes, and select **Crop answer**.
+Drag across the PDF, name the excerpt, and select **Save answer crop**. The percent
+bounds offer a keyboard alternative to dragging. Escape cancels an unsaved crop.
+
+Use the page controls to include more than one excerpt, including answers spanning
+multiple pages. Each question retains independent assignment and solution page
+numbers; students still map their own PDFs separately. Excerpts use normalized
+page coordinates and stay aligned when zooming or changing viewport size.
+
+Drafts save through the existing local/connected store. Finalizing captures the
+crops and original solution PDF in the published standard. TAs see these private
+answer previews beside each question while reviewing. Students never receive the
+solution metadata or PDF through the classroom API.
+
+Replacing a solution flags its old excerpts. Select **Remap**, choose the page,
+adjust the box, and save. Check the question's solution page list as well, especially
+when the replacement is shorter. Finalization rejects unresolved source/page
+mismatches. This is explicit remapping, not automatic recognition of reflowed text.
+
+Validation: `npm test` and `npm run test:rubric` from `frontend/`; the browser test
+uses a temporary local classroom, synthetic PDFs with different page lengths, and
+headless Chrome. Install frontend and student dependencies first, and install the
+backend environment as described in `backend/README.md`. It tests drawing, numeric
+bounds, persistence, multiple questions, TA previews, privacy, remapping and mobile
+overflow. No Supabase or external AI calls are made by this test.
+
+The layout follows [Gradescope's question-focused PDF/rubric workflow](https://guides.gradescope.com/hc/en-us/articles/22249389005709-Grading-submissions-with-rubrics),
+with solution excerpts kept separate from student page assignments.

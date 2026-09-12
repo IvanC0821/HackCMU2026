@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {renderAssessmentExplanation} from '../../connected/review-explanation.mjs';
-const files=['model.mjs','row-check.mjs','case.mjs','storage.mjs','api.mjs','case-view.mjs','view.mjs','app.mjs'];
+const files=['solution-crops.mjs','rubric-pdf.mjs','rubric-studio.mjs','model.mjs','row-check.mjs','case.mjs','storage.mjs','api.mjs','case-view.mjs','view.mjs','app.mjs'];
 const code=(await Promise.all(files.map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')))).map(s=>s.replace(/^import .+;\n/gm,'').replace(/^export /gm,'')).join('\n');
 async function screen() {
   const listeners={}, root={}, elements={};
@@ -56,4 +56,18 @@ test('appeal and TA reason travel through real event handlers',async()=>{
 test('failed storage opens in explicit session-only mode; no credential enters state',async()=>{
   const s=await screen();assert.match(s.root.innerHTML,/Session only/);assert.match(s.root.innerHTML,/Browser storage is unavailable/);
   assert.equal(vm.runInContext('JSON.stringify(state).includes("apiToken")',s.context),false);
+});
+test('crop selection stays temporary until explicitly saved and can be cancelled',async()=>{
+  const s=await screen();s.route('#/homework/1/standards');await s.click('sample-rubric');
+  const before=vm.runInContext('state.revision',s.context);
+  await s.click('start-crop');
+  assert.equal(vm.runInContext('state.revision',s.context),before);
+  assert.match(s.root.innerHTML,/Save answer crop/);
+  await s.click('cancel-crop');
+  assert.equal(vm.runInContext('state.draft[0].solutionCrops',s.context),undefined);
+  await s.click('start-crop');
+  await s.submit('crop-selection-form',{label:{value:'Correct answer'},bound0:{value:'10'},bound1:{value:'20'},bound2:{value:'70'},bound3:{value:'30'}});
+  assert.equal(vm.runInContext('state.draft[0].solutionCrops[0].label',s.context),'Correct answer');
+  await s.click('publish');
+  assert.equal(vm.runInContext('state.versions[0].questions[0].solutionCrops.length',s.context),1);
 });

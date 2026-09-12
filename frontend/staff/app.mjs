@@ -1,3 +1,5 @@
+import {putSolutionCrop, validCropRect} from './solution-crops.mjs';
+import {renderRubricPDFs, attachCropDrawing, openRubricPDF, releaseRubricPDFs} from './rubric-pdf.mjs';
 import {newWorkspace, STAFF_SCHEMA, activeRubric, loadSampleRubric, publishDraft, addQuestion, addCriterion, seedClass, addSampleRevision, updateOutcome, markSkimmed, completeReview, reopenReview, prepareCurrentReviews, draftAnnouncement, parsePageList, record, touch} from './model.mjs';
 import {renderWorkspace, routeFrom, escapeHTML} from './view.mjs';
 import {openStore} from './storage.mjs';
@@ -11,14 +13,16 @@ const appRoot = document.querySelector('#app'), dialog = document.querySelector(
 const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
+  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null,
   caseVariant: 'incomplete', caseJSON: JSON.stringify(caseWork.incomplete, null, 2), initializing: true};
-let channel;
+let channel, renderCycle = 0;
 try { channel = new BroadcastChannel('verity-staff-mvp'); } catch { /* Optional same-origin cross-tab notification. */ }
 function setDocURLs() {
   const docs = [state.documents, ...state.versions.map(v => v.documents)].flatMap(d => [d.blank, d.solution, ...d.examples]).concat(state.submissions.flatMap(s => s.attempts.map(a => a.pdf))).filter(Boolean);
   for (const doc of docs) if (!ui.docURLs[doc.id] || (connected && doc.blob && !ui.docURLs[doc.id].startsWith('blob:'))) ui.docURLs[doc.id] = doc.sample ? doc.path : doc.blob ? URL.createObjectURL(doc.blob) : '';
 }
 function render(focus = false) {
+  renderCycle++;
   setDocURLs(); ui.sid = decodeURIComponent(location.hash.split('/review/')[1] || '');
   document.title = `Verity · ${ui.route === 'home' ? 'Homeworks' : state.title}`;
   appRoot.innerHTML = renderWorkspace(state, ui);
@@ -29,6 +33,22 @@ function render(focus = false) {
       ['This local MVP does not publish real grades. Student uploads and live grading integration come next.', 'Student PDFs arrive here automatically. Saved decisions update student feedback and the live chart. Dataset AI assessments are provisional; other new uploads wait for staff review.'],
     ]);
     for (const el of appRoot.querySelectorAll('.quiet-note, .privacy-note')) if (copy.has(el.textContent)) el.textContent = copy.get(el.textContent);
+  }
+  if (appRoot.querySelectorAll) {
+    const docs = [state.documents, ...state.versions.map(v => v.documents)].flatMap(d => [d.blank, d.solution, ...d.examples]).filter(Boolean);
+    void renderRubricPDFs(appRoot, docs, ui.docURLs, (id, count) => {
+      ui.pdfCounts[id] = count;
+      const canvas = appRoot.querySelector('.crop-surface canvas');
+      if (canvas?.dataset.referencePdf === id) {
+        const input = appRoot.querySelector('#setup-page'); if (input) input.max = count;
+        const label = appRoot.querySelector('[data-pdf-page-count]'); if (label) label.textContent = `of ${count}`;
+        const next = appRoot.querySelector('[data-action="setup-next"]'); if (next) next.disabled = ui.setupPage >= count;
+      }
+    });
+    attachCropDrawing(appRoot, rect => {
+      if (!ui.cropSelection) return;
+      ui.cropSelection.rect = rect; render(); announce('Answer region selected. Save the crop or adjust its bounds.');
+    });
   }
   if (focus) document.querySelector('#main')?.focus({preventScroll: true});
 }
@@ -78,11 +98,33 @@ document.addEventListener('click', async event => {
   if (ui.busy) return;
   ui.error = ''; ui.message = '';
   try {
-    const navigation = ['pdf', 'edit-question', 'review-question', 'insight', 'previous-page', 'next-page', 'copy', 'test-api'];
+    const navigation = ['start-crop', 'edit-crop', 'setup-tab', 'setup-prev', 'setup-next', 'setup-zoom-in', 'setup-zoom-out', 'cancel-crop', 'pdf', 'edit-question', 'review-question', 'insight', 'previous-page', 'next-page', 'copy', 'test-api'];
     if (!navigation.includes(action)) assertWritable();
     if (connected && ['reset','confirm-reset','seed','cohort','recheck'].includes(action)) throw Error('This shared classroom preserves student records. Use a separate demo workspace for reset or bulk sample replacement.');
+    if (ui.cropSelection && ['publish','add-question','sample-rubric','edit-question','remove-file'].includes(action)) throw Error('Save or cancel the selected answer crop first.');
+    if (action === 'setup-tab') ui.setupTab = button.dataset.tab;
+    if (action === 'setup-prev') ui.setupPage = Math.max(1, ui.setupPage - 1);
+    if (action === 'setup-next') {
+      const doc = ui.setupDoc === 'solution' ? state.documents.solution : ui.setupDoc === 'blank' ? state.documents.blank : state.documents.examples[Number(ui.setupDoc.split('-')[1])];
+      ui.setupPage = Math.min(ui.setupPage + 1, ui.pdfCounts[doc?.id] || doc?.pageCount || 1);
+    }
+    if (action === 'setup-zoom-in') ui.setupZoom = Math.min(2, Math.round((ui.setupZoom + .2)*10)/10);
+    if (action === 'setup-zoom-out') ui.setupZoom = Math.max(.6, Math.round((ui.setupZoom - .2)*10)/10);
+    if (action === 'start-crop' || action === 'edit-crop') {
+      const q = state.draft[ui.editQ]; if (!q || !state.documents.solution) throw Error('Add a question and attach the solution PDF first.');
+      const crop = action === 'edit-crop' ? q.solutionCrops?.find(c => c.id === button.dataset.cropId) : null;
+      ui.setupDoc = 'solution'; ui.setupTab = 'rubric';
+      const count = ui.pdfCounts[state.documents.solution.id] || state.documents.solution.pageCount || 1;
+      ui.setupPage = crop ? Math.min(crop.page,count) : Math.min(ui.setupPage,count);
+      ui.cropSelection = crop ? structuredClone(crop) : {rect: [.1,.15,.8,.25], label: `Question ${ui.editQ + 1} answer`};
+    }
+    if (action === 'cancel-crop') ui.cropSelection = null;
+    if (action === 'remove-crop') {
+      state.draft[ui.editQ].solutionCrops = (state.draft[ui.editQ].solutionCrops || []).filter(c => c.id !== button.dataset.cropId);
+      ui.cropSelection = null; state.dirty = true; touch(state);
+    }
     if (action === 'pdf') { showPDF(button.dataset.kind, Number(button.dataset.index)); return; }
-    if (action === 'sample-rubric') { loadCase(state); ui.editQ = 0; ui.message = 'Demo references loaded. Review the 10-point standard, then finalize it.'; }
+    if (action === 'sample-rubric') { ui.setupDoc = 'solution'; ui.setupPage = 1; loadCase(state); ui.editQ = 0; ui.message = 'Demo references loaded. Review the 10-point standard, then finalize it.'; }
     if (action === 'case-variant') { ui.caseVariant = button.dataset.variant; ui.caseJSON = JSON.stringify(caseWork[ui.caseVariant], null, 2); }
     if (action === 'check-case') { assessCase(state, JSON.parse(ui.caseJSON), ui.caseVariant === 'edited' ? 'Edited work' : `${ui.caseVariant} work`); ui.message = 'Check complete. Review the feedback before submitting.'; }
     if (action === 'submit-case') {
@@ -92,7 +134,7 @@ document.addEventListener('click', async event => {
     }
     if (action === 'reopen-case') { reopenCaseSubmission(state); ui.message = 'Demo submission reopened for another rehearsal. Earlier work is preserved.'; }
     if (action === 'publish') { const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
-    if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; }
+    if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; ui.setupTab = 'rubric'; }
     if (action === 'add-criterion') { addCriterion(state.draft[Number(button.dataset.q)]); state.dirty = true; touch(state); }
     if (action === 'remove-criterion') { state.draft[Number(button.dataset.q)].criteria.splice(Number(button.dataset.c), 1); state.dirty = true; touch(state); }
     if (action === 'add-band') {
@@ -125,19 +167,32 @@ document.addEventListener('click', async event => {
     if (action === 'confirm-reset') {
       await saveChain; const revision = state.revision; state = newWorkspace(); state.revision = revision + 1;
       for (const url of Object.values(ui.docURLs)) if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-      ui.docURLs = {}; ui.editQ = 0; ui.attempt = ''; dialog.close(); location.hash = '#/'; ui.message = 'Local preview data cleared. This cannot be undone; server data was not changed.';
+      releaseRubricPDFs(); ui.docURLs = {}; ui.editQ = 0; ui.attempt = ''; dialog.close(); location.hash = '#/'; ui.message = 'Local preview data cleared. This cannot be undone; server data was not changed.';
     }
     if (action === 'test-api') {
       ui.busy = true; ui.apiOpen = true; render();
       try { await apiRequest({origin: ui.apiOrigin, token: ui.apiToken}, '/api/v1/me', {signal: AbortSignal.timeout(15000)}); ui.message = 'API token accepted. Drafting still requires instructor permissions and an AI-enabled worker.'; }
       finally { ui.busy = false; }
     }
-    if (!navigation.includes(action)) await save();
+    if (!navigation.includes(action)) {
+      render(); const shownCycle = renderCycle;
+      if (action === 'add-question') document.querySelector(`[data-edit="question"][data-q="${ui.editQ}"][data-field="title"]`)?.focus();
+      if (action === 'add-criterion') document.querySelector(`[data-edit="criterion"][data-q="${button.dataset.q}"][data-c="${state.draft[Number(button.dataset.q)].criteria.length-1}"][data-field="label"]`)?.focus();
+      await save();
+      if (shownCycle !== renderCycle || document.activeElement?.matches('input, textarea, select')) return;
+    }
   } catch (error) { ui.error = error.message; }
   render(); announce(ui.error || ui.message); focusAgain(button);
 });
 document.addEventListener('input', event => {
   const input = event.target;
+  if (ui.cropSelection && input.dataset.cropBound !== undefined) {
+    ui.cropSelection.rect[Number(input.dataset.cropBound)] = Number(input.value)/100;
+    const rect = ui.cropSelection.rect, overlay = document.querySelector('.crop-selection');
+    if (overlay && validCropRect(rect)) overlay.style.cssText = `left:${rect[0]*100}%;top:${rect[1]*100}%;width:${rect[2]*100}%;height:${rect[3]*100}%`;
+    return;
+  }
+  if (ui.cropSelection && input.name === 'label') { ui.cropSelection.label = input.value; return; }
   if (input.id === 'case-json') {
     ui.caseJSON = input.value; ui.caseVariant = 'edited';
     const submit = document.querySelector('[data-action="submit-case"]'); if (submit) submit.disabled = true;
@@ -153,6 +208,17 @@ document.addEventListener('change', async event => {
   const input = event.target; ui.error = ''; ui.message = '';
   if (ui.busy) return;
   try {
+    if (input.dataset.cropBound !== undefined || (ui.cropSelection && input.name === 'label')) return;
+    if (['setup-document', 'setup-question'].includes(input.id) && ui.cropSelection) throw Error('Save or cancel the selected answer crop first.');
+    if (input.id === 'setup-document') { ui.setupDoc = input.value; ui.setupPage = 1; render(); return; }
+    if (input.id === 'setup-question') {
+      ui.editQ = Number(input.value); ui.setupPage = state.draft[ui.editQ]?.[ui.setupDoc === 'blank' ? 'assignmentPages' : 'solutionPages']?.[0] || 1;
+      render(); return;
+    }
+    if (input.id === 'setup-page') {
+      if (!Number.isInteger(Number(input.value)) || Number(input.value)<1 || Number(input.value)>Number(input.max)) throw Error('Choose a page within this PDF.');
+      ui.setupPage = Number(input.value); render(); return;
+    }
     if (input.id === 'ai-consent') { ui.consent = input.checked; return; }
     if (input.id === 'case-json') { ui.caseJSON = input.value; ui.caseVariant = 'edited'; return; }
     if (input.id === 'document-kind') { ui.doc = input.value; ui.page = 0; render(); return; }
@@ -173,13 +239,19 @@ document.addEventListener('change', async event => {
       state.dirty = true; touch(state);
     }
     if (input.dataset.file) {
+      if (ui.cropSelection) throw Error('Save or cancel the selected crop before replacing a PDF.');
       const files = [...input.files]; if (!files.length) return;
       if (input.dataset.file === 'examples' && state.documents.examples.length + files.length > 28) throw new Error('Use up to 28 graded examples or guideline PDFs, plus the assignment and solution.');
       for (const file of files) await checkPdf(file);
+      ui.busy = true; render();
       const docs = files.map(file => ({id: crypto.randomUUID(), name: file.name, blob: file, sample: false}));
+      try { for (const doc of docs) doc.pageCount = (await openRubricPDF(doc)).numPages; }
+      catch { throw Error('This PDF could not be opened. Choose a valid, unlocked PDF.'); }
+      finally { ui.busy = false; }
+      ui.setupDoc = input.dataset.file === 'examples' ? `example-${state.documents.examples.length}` : input.dataset.file; ui.setupPage = 1;
       if (input.dataset.file === 'examples') state.documents.examples.push(...docs); else state.documents[input.dataset.file] = docs[0];
       state.source = 'manual'; state.dirty = true; record(state, 'References attached locally', docs.map(d => d.name).join(', '));
-      ui.message = 'PDF saved locally. Add or review the question definitions. Uploaded files are not automatically graded.';
+      ui.message = input.dataset.file === 'solution' && state.draft.some(q => q.solutionCrops?.length) ? 'Solution replaced. Review and remap your answer excerpts before finalizing.' : 'PDF attached. Select a question and crop its answer from the solution.';
     }
     await save();
     if (input.dataset.edit || input.id === 'instructions' || input.id === 'announcement-draft') {
@@ -196,10 +268,19 @@ document.addEventListener('change', async event => {
 document.addEventListener('submit', async event => {
   if (ui.initializing) { event.preventDefault(); return; }
   const form = event.target;
-  if (!form.matches('.decision-form, #reopen-form, #api-form, #case-appeal')) return;
+  if (!form.matches('.decision-form, #reopen-form, #api-form, #case-appeal, #crop-selection-form')) return;
   event.preventDefault(); ui.error = ''; ui.message = '';
   try {
     assertWritable();
+    if (form.id === 'crop-selection-form') {
+      if (!ui.cropSelection) return;
+      const doc = state.documents.solution;
+      putSolutionCrop(state.draft[ui.editQ], {...doc, pageCount: ui.pdfCounts[doc.id] || doc.pageCount}, {
+        id: ui.cropSelection.id, page: ui.setupPage, label: form.elements.label.value,
+        rect: [0,1,2,3].map(i => Number(form.elements[`bound${i}`].value)/100),
+      });
+      ui.cropSelection = null; state.dirty = true; touch(state); ui.message = 'Answer crop saved to this question. It will be included when you finalize the standard.';
+    }
     if (form.id === 'case-appeal') { appealCase(state, form.elements.message.value); ui.message = 'Dispute added to the TA review queue. No email or external message was sent.'; }
     if (form.matches('.decision-form')) {
       updateOutcome(state, ui.sid, form.dataset.q, form.dataset.c, form.elements.band.value, form.elements.reason.value, form.elements.resolution?.value);
@@ -230,11 +311,19 @@ document.addEventListener('submit', async event => {
   } catch (error) { ui.error = error.name === 'AbortError' ? 'Stopped waiting. Existing API work was not deleted.' : error.message; }
   render(); announce(ui.error || ui.message);
 });
-window.addEventListener('hashchange', () => { ui.route = routeFrom(location.hash); ui.attempt = ''; ui.page = 0; ui.error = ''; render(true); });
+document.addEventListener('keydown', event => {
+  const tab = event.target.closest?.('[role="tab"][data-tab]');
+  if (tab && ['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) {
+    event.preventDefault(); ui.setupTab = event.key === 'Home' ? 'rubric' : event.key === 'End' ? 'references' : ui.setupTab === 'rubric' ? 'references' : 'rubric';
+    render(); document.querySelector(`#studio-tab-${ui.setupTab}`)?.focus();
+  }
+  if (event.key === 'Escape' && ui.cropSelection) { ui.cropSelection = null; render(); }
+});
+window.addEventListener('hashchange', () => { ui.cropSelection = null; ui.route = routeFrom(location.hash); ui.attempt = ''; ui.page = 0; ui.error = ''; render(true); });
 dialog.addEventListener('close', () => { document.querySelector('#staff-dialog-body').innerHTML = ''; });
 let refreshing = false;
 async function refreshWorkspace() {
-  if (!store || blocked || refreshing || ui.busy || state.revision !== persistedRevision || document.activeElement?.matches('input, textarea, select')) return;
+  if (!store || blocked || refreshing || ui.busy || ui.cropSelection || state.revision !== persistedRevision || document.activeElement?.matches('input, textarea, select')) return;
   refreshing = true;
   try {
     const fresh = await store.load();
@@ -259,3 +348,13 @@ async function start() {
   ui.initializing = false; render();
 }
 start();
+
+let rubricResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(rubricResizeTimer);
+  rubricResizeTimer = setTimeout(() => {
+    if (!appRoot.querySelectorAll || !['standards','review'].includes(ui.route)) return;
+    const docs = [state.documents, ...state.versions.map(v => v.documents)].flatMap(d => [d.blank, d.solution, ...d.examples]).filter(Boolean);
+    void renderRubricPDFs(appRoot, docs, ui.docURLs);
+  }, 150);
+});

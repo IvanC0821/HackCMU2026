@@ -307,3 +307,38 @@ def test_open_demo_switches_roles_without_codes_and_keeps_native_api_private(
     )
     assert client.get("/classroom/me", headers={"X-Verity-Demo-Role": "admin"}).status_code == 422
     assert env["client"].get("/api/v1/me", headers=teacher).status_code == 401
+
+
+def test_solution_crops_persist_for_staff_and_never_reach_students(classroom):
+    call, _, _ = classroom
+    publish(call)
+    state = call("GET", "/classroom/workspace")
+    revision = state["revision"]
+    crop = {
+        "id": "answer-crop-1",
+        "documentId": state["documents"]["solution"]["id"],
+        "page": 2,
+        "rect": [0.1, 0.2, 0.7, 0.3],
+        "label": "Private worked answer",
+    }
+    state["draft"][0]["solutionCrops"] = [crop]
+    state["dirty"] = True
+    state = js(
+        "import {publishDraft} from './frontend/staff/model.mjs';"
+        "let raw='';for await(const chunk of process.stdin)raw+=chunk;"
+        "const s=JSON.parse(raw);publishDraft(s);console.log(JSON.stringify(s));",
+        state,
+    )
+    call("PUT", "/classroom/workspace", json={"expectedRevision": revision, "state": state})
+    staff = call("GET", "/classroom/workspace", role="ta")
+    assert staff["versions"][-1]["questions"][0]["solutionCrops"] == [crop]
+    assert "solutionCrops" not in staff["versions"][0]["questions"][0]
+    public = call("GET", "/classroom/student", role="student")
+    assert "solutionCrops" not in json.dumps(public)
+    assert "Private worked answer" not in json.dumps(public)
+    call(
+        "GET",
+        "/classroom/files/" + state["documents"]["solution"]["remoteId"],
+        role="student",
+        expected=404,
+    )
