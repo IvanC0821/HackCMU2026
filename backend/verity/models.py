@@ -196,3 +196,19 @@ class MathCheck(Record, Base):
     lhs: Mapped[str] = mapped_column(Text)
     rhs: Mapped[str] = mapped_column(Text)
     result: Mapped[str] = mapped_column(String(30))
+
+
+class HintBank(Record, Base):
+    __tablename__ = "assignment_hint_banks"
+    __table_args__ = (UniqueConstraint("scope", "fingerprint"),)
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id"), index=True)
+    scope: Mapped[str] = mapped_column(String(80), index=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    context: Mapped[dict] = mapped_column(JSON)
+    entries: Mapped[list] = mapped_column(JSON)
+    original: Mapped[dict] = mapped_column(JSON, default=dict)
+    provenance: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+    approved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __mapper_args__ = {"version_id_col": version}

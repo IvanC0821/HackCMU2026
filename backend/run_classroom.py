@@ -75,6 +75,9 @@ def provision(private=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--ai-hints", action="store_true", help="Allow external AI to prepare assignment hints"
+    )
     parser.add_argument("--port", type=int, default=3004)
     parser.add_argument("--provision-only", action="store_true")
     parser.add_argument(
@@ -86,7 +89,7 @@ if __name__ == "__main__":
         "--private", action="store_true", help="Require access codes instead of open demo switching"
     )
     args = parser.parse_args()
-    if args.allow_ai:
+    if args.allow_ai or args.ai_hints:
         os.environ["EXTERNAL_AI_ENABLED"] = "true"
     access = provision(private=args.private)
     if args.private:
@@ -99,4 +102,10 @@ if __name__ == "__main__":
         from verity.classroom import app
 
         print(f"Verity: http://127.0.0.1:{args.port}/")
+        if args.ai_hints:
+            import threading
+
+            from verity.jobs import main as worker
+
+            threading.Thread(target=worker, daemon=True).start()
         uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")

@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from . import providers
+from . import hint_banks
 from .models import Finding, Hint, IssuedFeedback, Rubric
 
 
@@ -35,60 +35,52 @@ def cached_hint(db, finding, level, source):
 def prepare_hints(db, assignment, assessment, level, source):
     policy = assignment.data["feedback_policy"]
     level = effective_level(assignment, level)
-    spec = db.get(Rubric, assessment.rubric_id).spec
-    patterns = {p["id"]: p for p in spec["patterns"]}
-    if source == "ai" and not policy["allow_generated"]:
-        raise HTTPException(403, "Generated feedback is disabled for this assignment")
+    rubric = db.get(Rubric, assessment.rubric_id)
+    bank = hint_banks.core_bank(db, assignment, rubric)
+    if bank and bank.status not in {"approved", "published"}:
+        raise HTTPException(409, "The professor has not approved the assignment hints")
+    patterns = {p["id"]: p for p in rubric.spec["patterns"]}
     for finding in active_findings(db, assessment, policy["max_findings"]):
-        if cached_hint(db, finding, level, source):
-            continue
-        pattern = patterns.get(finding.pattern_id)
-        actual_level = 0
-        text = "Revisit the marked step and check that each claim follows from your assumptions."
-        if finding.status == "pending_anchor":
-            text = "Revisit this question and check that each claim follows from your assumptions."
+        selected = hint_banks.select_hint(
+            bank, finding.question_id, finding.criterion_id, finding.pattern_id, level
+        )
+        text, actual_level = hint_banks.GENERIC, 0
         if finding.category == "uncertain":
-            text = "This part could not be assessed confidently. Clarify the writing or ask your instructor."
-        elif source == "ai" and level > 0:
-            text = providers.generate_hint(assignment, finding, pattern, level, policy["max_words"])
-            actual_level = level
-        elif pattern:
+            text = "Clarify the writing or ask your instructor before continuing."
+        elif selected:
+            text, actual_level = selected["text"], selected["level"]
+        elif bank is None:  # Already-published legacy rubrics contain instructor-approved hints.
             candidates = [
                 h
-                for h in pattern["hints"]
+                for h in patterns.get(finding.pattern_id, {}).get("hints", [])
                 if h["level"] <= level and len(h["text"].split()) <= policy["max_words"]
             ]
             if candidates:
-                hint = max(candidates, key=lambda h: h["level"])
-                text, actual_level = hint["text"], hint["level"]
-        # Generic fallback is always within the smallest allowed word budget.
+                selected = max(candidates, key=lambda h: h["level"])
+                text, actual_level = selected["text"], selected["level"]
         if len(text.split()) > policy["max_words"]:
-            text = "Revisit this step and check your assumptions."
-        db.add(
-            Hint(
+            text, actual_level = "Check your assumptions before continuing.", 0
+        provenance = {
+            "actual_level": actual_level,
+            "source": "approved_assignment_bank",
+            "bank_id": bank.id if bank else None,
+            "bank_version": bank.version if bank else None,
+        }
+        hint = cached_hint(db, finding, level, source)
+        if hint is None:
+            hint = Hint(
                 finding_id=finding.id,
                 finding_version=finding.version,
                 level=level,
                 source=source,
                 text=text,
-                provenance={
-                    "actual_level": actual_level,
-                    **(
-                        providers.provenance(providers.FEEDBACK_PROMPT_VERSION)
-                        if source == "ai" and actual_level > 0
-                        else {"source": "approved_or_template"}
-                    ),
-                },
+                provenance=provenance,
             )
-        )
+            db.add(hint)
+        else:
+            # Never reuse a historical on-demand AI hint; refresh from the approved bank.
+            hint.text, hint.provenance = text, provenance
     db.flush()
-
-
-def hints_ready(db, assignment, assessment, level, source):
-    return all(
-        cached_hint(db, f, level, source)
-        for f in active_findings(db, assessment, assignment.data["feedback_policy"]["max_findings"])
-    )
 
 
 def filter_location(item, visibility):
@@ -122,7 +114,9 @@ def issue(db, assignment, assessment, actor_id, level, source, manual_items=()):
                 "anchor": finding.data.get("anchor"),
                 "text": hint.text,
                 "level": hint.provenance["actual_level"],
-                "source": hint.source,
+                "source": "bank",
+                "hint_bank_id": hint.provenance.get("bank_id"),
+                "hint_bank_version": hint.provenance.get("bank_version"),
                 "assessment_source": assessment.source,
                 "instructor_confirmed": finding.confirmed,
             }

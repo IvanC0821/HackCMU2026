@@ -105,7 +105,15 @@ try{
  await q.locator('[data-edit="band"][data-field="label"]').first().fill('A valid justification');
  await q.locator('[data-field="prompt"]').click();
  await page.locator('.save-state').filter({hasText:'saved to course'}).waitFor();
+ await page.getByRole('tab',{name:'Files & settings'}).click();
+ await page.locator('.assignment-hints > summary').click();
+ await page.getByRole('button',{name:'Review / refresh hints',exact:true}).click();
+ await page.getByRole('button',{name:'Approve these hints',exact:true}).click();
+ await page.locator('.notice').filter({hasText:'Hints approved'}).waitFor();
+ const publication=page.waitForResponse(response=>response.url().endsWith('/classroom/workspace')&&response.request().method()==='PUT'&&JSON.parse(response.request().postData()).state.versions.length>0);
  await page.getByRole('button',{name:'Finalize grading standard'}).click();
+ const publishedResponse=await publication;
+ assert.equal(publishedResponse.status(),200,await publishedResponse.text());
  await page.waitForURL('**/#/homework/1');
  const api=async(path,options={},role='teacher')=>{
   const response=await fetch(origin+'/classroom'+path,{...options,headers:{...options.headers,'X-Verity-Demo-Role':role}});
