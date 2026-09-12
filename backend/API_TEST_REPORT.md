@@ -59,3 +59,16 @@ The environment file needs `OPENAI_API_KEY` and `ZAI_API_KEY`. Live tests use
 synthetic PDFs and temporary local records. `VERITY_LIVE_MODEL` defaults to
 `gpt-5.4-mini`; it does not change application settings. Requests incur provider
 charges. Handwriting accuracy and production load were not benchmarked.
+
+## Assignment hint-bank change
+
+The earlier live hint-generation results above describe the prior implementation.
+Student requests now use saved professor-approved text. Validation for this change:
+79 backend tests and 66 frontend tests passed; 2 paid-provider tests were skipped.
+Added checks cover setup-time generation with attached graded PDFs, manual modification,
+approval/publication gates, student/TA access, disclosure limits, immutable published banks,
+model failure, superseded jobs and concurrent professor edits. A real headless Chrome
+workflow verified setup → blocked premature publication → edit → approve → publish with
+no browser errors. An isolated SQLite migration reached `a281d40c791f` successfully.
+Provider responses were mocked for new generation tests; no new paid model-quality benchmark
+was run. The classroom adapter still requires staff to identify errors in arbitrary uploads.

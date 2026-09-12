@@ -127,15 +127,14 @@ def assess(db, job):
     policy = assignment.data["feedback_policy"]
     # Grade proposal remains usable even if optional hint generation is temporarily unavailable.
     feedback.prepare_hints(db, assignment, assessment, policy["max_disclosure_level"], "bank")
-    if policy["allow_generated"]:
-        try:
-            feedback.prepare_hints(db, assignment, assessment, policy["max_disclosure_level"], "ai")
-        except providers.ProviderFailure:
-            pass  # approved hints remain available; an explicit AI feedback request may retry
     return assessment.id
 
 
 def process(db, job):
+    if job.kind == "assignment_hints":
+        from .hint_banks import generate
+
+        return generate(db, job)
     if job.kind == "assessment":
         return assess(db, job)
     if job.kind == "rubric_draft":
@@ -163,8 +162,15 @@ def run_once(session_factory=SessionLocal):
             .where(Job.status == "running", Job.lease_until < now)
             .values(status="failed", error_code="worker_lease_expired", lease_until=None)
         )
-        candidate = db.scalar(
-            select(Job.id).where(Job.status == "queued").order_by(Job.created_at).limit(1)
+        candidate = next(
+            (
+                j.id
+                for j in db.scalars(
+                    select(Job).where(Job.status == "queued").order_by(Job.created_at)
+                )
+                if j.payload.get("not_before", 0) <= now
+            ),
+            None,
         )
         if not candidate:
             db.commit()

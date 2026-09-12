@@ -15,8 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import JSON, ForeignKey, Integer, String, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.orm.exc import StaleDataError
 
-from . import pdf, storage
+from . import classroom_hints, hint_banks, pdf, providers, storage
 from .auth import bearer, course_role, current_user, require_staff
 from .config import settings
 from .db import Base, get_db
@@ -145,6 +146,15 @@ def student_attempt(state, attempt):
                     criterion.get("category", "").lower().replace(" error", ""),
                     ("Work to revisit", "Review your work on this question with your TA."),
                 )
+                candidates = [
+                    h
+                    for h in version.get("hintBank", {}).get("entries", [])
+                    if h["question_id"] == q["id"]
+                    and h["criterion_id"] == criterion["id"]
+                    and h["level"] <= 2
+                ]
+                if candidates:
+                    message = max(candidates, key=lambda h: h["level"])["text"]
                 # No private rubric labels, rationales, expected answers or invented PDF coordinates.
                 findings.append(
                     {
@@ -228,6 +238,8 @@ def save_workspace(body: WorkspaceSave, db: DB, actor: Actor):
     prior_versions = room.state["versions"]
     if state["versions"][: len(prior_versions)] != prior_versions:
         raise HTTPException(422, "Published standards cannot be replaced. Publish a new version.")
+    classroom_hints.prepare(db, room, state, actor.id)
+    classroom_hints.bind_published(db, room, state)
     # UI demo/reset controls may not erase actual student records or edit their source work.
     attempts = {a["id"]: a for s in state["submissions"] for a in s["attempts"]}
     for student in room.state["submissions"]:
@@ -477,3 +489,52 @@ def staff_asset(name: str):
 
 app.mount("/connected", StaticFiles(directory=ROOT / "connected"), name="connected")
 app.mount("/student-assets", StaticFiles(directory=ROOT / "student"), name="student-assets")
+
+
+@app.exception_handler(providers.ProviderFailure)
+async def hint_provider_error(request, exc):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=503, content={"detail": exc.code})
+
+
+@app.exception_handler(StaleDataError)
+async def stale_hint_error(request, exc):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=409, content={"detail": "Hints changed; reload before saving"})
+
+
+def classroom_bank_access(db, actor, write=False):
+    room = room_for(db, actor)
+    require_staff(db, actor, room.course_id, instructor=write)
+    bank = classroom_hints.current(db, room)
+    if not bank:
+        raise HTTPException(404, "Save questions and criteria to prepare assignment hints")
+    if write:
+        classroom_hints.require_editable(room, bank)
+    return bank
+
+
+@app.get("/classroom/hint-bank")
+def classroom_hint_bank(db: DB, actor: Actor):
+    return hint_banks.view(db, classroom_bank_access(db, actor))
+
+
+@app.put("/classroom/hint-bank")
+def classroom_edit_hints(body: hint_banks.Edit, db: DB, actor: Actor):
+    return hint_banks.edit(db, classroom_bank_access(db, actor, True), body, actor.id)
+
+
+@app.post("/classroom/hint-bank:approve")
+def classroom_approve_hints(body: hint_banks.Version, db: DB, actor: Actor):
+    return hint_banks.approve(
+        db, classroom_bank_access(db, actor, True), body.expected_version, actor.id
+    )
+
+
+@app.post("/classroom/hint-bank:generate", status_code=202)
+def classroom_generate_hints(body: hint_banks.Version, db: DB, actor: Actor):
+    return hint_banks.queue(
+        db, classroom_bank_access(db, actor, True), actor.id, body.expected_version
+    )

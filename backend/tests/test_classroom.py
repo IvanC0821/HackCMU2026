@@ -77,7 +77,15 @@ def publish(call):
                 d["solution"] = uploaded
             else:
                 d["examples"] = [uploaded if e["id"] == doc["id"] else e for e in d["examples"]]
-    return call("PUT", "/classroom/workspace", json={"expectedRevision": 0, "state": s})
+    versions = s["versions"]
+    s["versions"] = []
+    saved = call("PUT", "/classroom/workspace", json={"expectedRevision": 0, "state": s})
+    hints = call("GET", "/classroom/hint-bank")
+    call("POST", "/classroom/hint-bank:approve", json={"expected_version": hints["version"]})
+    saved["versions"] = versions
+    expected = saved["revision"]
+    saved["revision"] += 1
+    return call("PUT", "/classroom/workspace", json={"expectedRevision": expected, "state": saved})
 
 
 def upload_attempt(call, version=1, role="student", mapping=None):
@@ -307,3 +315,63 @@ def test_open_demo_switches_roles_without_codes_and_keeps_native_api_private(
     )
     assert client.get("/classroom/me", headers={"X-Verity-Demo-Role": "admin"}).status_code == 422
     assert env["client"].get("/api/v1/me", headers=teacher).status_code == 401
+
+
+def test_hints_are_reviewed_at_setup_and_selected_without_student_time_ai(classroom, monkeypatch):
+    from sqlalchemy import func, select
+
+    from verity import providers
+    from verity.models import HintBank
+
+    call, env, _ = classroom
+    s = publish(call)
+    approved = call("GET", "/classroom/hint-bank")
+    assert approved["status"] == "published"
+    call("GET", "/classroom/hint-bank", "student", 403)
+    call(
+        "POST",
+        "/classroom/hint-bank:approve",
+        "ta",
+        403,
+        json={"expected_version": approved["version"]},
+    )
+    call(
+        "PUT",
+        "/classroom/hint-bank",
+        expected=409,
+        json={"expected_version": approved["version"], "entries": approved["entries"]},
+    )
+    expected = s["revision"]
+    s["draft"][0]["prompt"] += " Justify each operation."
+    s["revision"] += 1
+    s = call("PUT", "/classroom/workspace", json={"expectedRevision": expected, "state": s})
+    bank = call("GET", "/classroom/hint-bank")
+    assert bank["id"] != approved["id"] and bank["status"] == "draft"
+    entries = [
+        {**e, "text": "Explain which row operation connects these two matrices."}
+        for e in bank["entries"]
+    ]
+    saved = call(
+        "PUT",
+        "/classroom/hint-bank",
+        json={"expected_version": bank["version"], "entries": entries},
+    )
+    version = {**deepcopy(s["versions"][-1]), "id": 2, "questions": deepcopy(s["draft"])}
+    s["versions"].append(version)
+    expected = s["revision"]
+    s["revision"] += 1
+    call(
+        "PUT", "/classroom/workspace", expected=409, json={"expectedRevision": expected, "state": s}
+    )
+    call("POST", "/classroom/hint-bank:approve", json={"expected_version": saved["version"]})
+    call("PUT", "/classroom/workspace", json={"expectedRevision": expected, "state": s})
+    monkeypatch.setattr(
+        providers, "structured", lambda *a, **kw: pytest.fail("Feedback must reuse approved hints")
+    )
+    upload_attempt(call, version=2)
+    score(call, "partial")
+    public = call("GET", "/classroom/student", "student")
+    assert public["attempts"][0]["result"]["findings"][0]["message"] == entries[0]["text"]
+    assert "hintBank" not in json.dumps(public) and "calibration_notes" not in json.dumps(public)
+    with env["factory"]() as db:
+        assert db.scalar(select(func.count()).select_from(HintBank)) == 2

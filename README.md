@@ -93,3 +93,13 @@ From `backend/`, run `uv run python -m scripts.debug_server`, then open
 `http://localhost:3000/__debug__/` and click **Run sample homework**. Sample PDFs,
 accounts, rubric, grading and hints are supplied automatically. No tokens or AI
 keys needed. See [the quick start](PROJECT.md#quick-start-no-manual-setup-in-the-page).
+
+
+### Prepare assignment hints
+
+In **Grading standards → Assignment hints**, review/edit the prepared hints and approve
+them before finalizing the standard. Student requests reuse saved hints immediately.
+Attach past graded examples in setup to inform AI drafts. Start with
+`cd backend && .venv/bin/python run_classroom.py --ai-hints` to enable setup-time generation
+and its worker using configured credentials. The default launch uses editable templates
+without external calls. See [the backend guide](backend/README.md#hints-prepared-during-assignment-setup).

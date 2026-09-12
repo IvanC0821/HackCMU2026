@@ -67,10 +67,10 @@ need evaluation with real instructor-approved examples and configured credential
 
 1. Instructor creates a course and enrolls provisioned students.
 2. Upload instructor PDFs using multipart `file` and `kind=assignment`, `answer_key`,
-   `rubric`, or `standard`; attach document IDs when creating the assignment.
+   `rubric`, `standard`, or `graded_example`; attach document IDs when creating the assignment.
 3. Create a rubric from `examples/rubric.json`, or enqueue AI rubric drafting.
    Inspect the draft via its job result ID. To edit, submit the revised spec as a
-   new draft version. Explicitly publish the chosen version. Published versions
+   new draft version. Review/edit and approve its hint bank, then explicitly publish the chosen version. Published versions
    are immutable. Every assignment question must have a criterion.
 4. Student uploads `kind=submission` (10 pages / 20 MiB max) and registers it under
    `/assignments/{id}/submissions`. Each new PDF is a distinct revision.
@@ -83,10 +83,9 @@ need evaluation with real instructor-approved examples and configured credential
    ID. Manual requests supply a complete `results` list and finish synchronously,
    using the same job response shape. Retry a failed job via `/jobs/{id}:retry`.
 7. POST `/assessments/{id}/feedback` with a unique `Idempotency-Key`, `source: bank`
-   or `ai`, and `requested_level`. Approved/cached hints return immediately; uncached
-   AI hints return 202 with a job. Poll, then GET `/submissions/{id}/feedback`.
-   No grade review is needed for practice hints. AI latency still applies; there
-   is no promise of instantaneous OCR or inference.
+   or `ai`, and `requested_level`. Both return saved, approved hints immediately.
+   Read history at `/submissions/{id}/feedback`. Hint generation and professor approval
+   happen during setup; grade review remains separate. OCR/assessment latency still applies.
 8. Staff reads the proposal, selects rubric bands, edits/dismisses/repositions
    findings and performs optional bounded polynomial checks. Use current
    `version` as `expected_version` for edits. Instructors finalize with
@@ -134,14 +133,11 @@ is reused. No automatic HTTP retries or alternate paid provider calls occur;
 explicitly retrying a failed job can incur new OCR charges. The guided sample
 launcher remains offline and does not call Z.ai.
 
-Approved pattern hints are the default. Optional generated hints require
-`feedback_policy.allow_generated: true`. They are generated from a limited teaching
-brief, without answer-key PDFs or staff grading rationales. Deterministic checks
-bound levels, lengths and counts, but cannot guarantee free-form semantic
-nondisclosure. Use approved hints for strict assignments. Repeated requests reuse
-cached text for the same finding version and level. Feedback history records what
-was issued, not whether a student read it. Instructor edits invalidate hint caches
-by finding version; previously issued text remains an auditable historical record.
+Assignment hint banks are prepared once during setup. AI drafts require
+`feedback_policy.allow_generated: true` and external AI permission. They use the current
+rubric, attached references and graded examples; the professor reviews and edits them
+before publication. Student feedback only selects approved saved text. Repeated requests
+never call a model. Issued feedback remains an auditable historical record.
 
 ## PDF coordinates
 
@@ -179,3 +175,51 @@ scan segmentation and long-term retention/deletion administration are future wor
 `POST /assessments/{id}/math-checks` supports only bounded rational polynomial
 identities, using an AST whitelist and SymPy construction without string eval.
 It does not verify arbitrary proofs or change grades.
+
+## Hints prepared during assignment setup
+
+Student feedback uses a saved, professor-approved assignment hint bank. It never calls a
+hint model, even for the compatibility request `source: "ai"`. The response source is
+`bank`. Assessment jobs also only select saved hints; grades still require their separate
+human review. Legacy published rubrics retain their previously approved hints.
+
+Creating a rubric automatically prepares a bank. With external AI and generated feedback
+enabled, the worker generates a draft once. Otherwise it imports rubric hints and fills
+missing targets with conservative, editable templates. Assignment creation also queues
+initial rubric drafting when both settings are enabled; staff responses include
+`setup_job_id`. A question must have criteria before a criterion-specific hint bank can be
+prepared. Repeated student requests never trigger generation or recalibration.
+
+Staff workflow (prefix `/api/v1`):
+1. `GET /rubric-versions/{id}/hint-bank` — inspect entries, original proposal, provenance,
+   calibration notes, and generation job/error.
+2. `PUT /rubric-versions/{id}/hint-bank` — send `expected_version` and edited `entries`.
+   Only text is editable; target IDs, levels and complete coverage are validated.
+3. `POST /rubric-versions/{id}/hint-bank:approve` — send `expected_version`. Professor-only;
+   this approves exactly the current text and invalidates outstanding generation.
+4. Publish the rubric. Its bank is now immutable. New standards use a new version/bank.
+5. A failed draft can be edited manually or explicitly retried through
+   `POST /rubric-versions/{id}/hint-bank:generate` with `expected_version`.
+
+Upload prior graded PDFs using `kind=graded_example` and include their document IDs in
+`material_document_ids`. AI sees the attached reference PDFs (images plus native text),
+including teacher annotations. It records calibration notes for professor review; current
+rubric requirements override conflicting historical examples. It never automatically
+mines unrelated student submissions or changes scores from these examples. There is a
+20-reference-page and bounded-context limit; failures are visible and preserve editable
+hints. Original proposals and edits are retained in audit history.
+
+For the connected website, use `python run_classroom.py --ai-hints` to enable setup-time
+AI and its worker, using configured provider credentials/model. Without that flag, the
+same review/edit/approval flow works with rubric hints and conservative templates.
+Grading standards → **Assignment hints → Review / refresh hints** provides the controls.
+Attach examples under past graded work. Classroom saves wait 30 seconds before queued
+generation; superseded drafts are skipped to avoid paying for every edit. Review saves
+and student requests do not regenerate hints. The adapter still requires manual review
+to identify errors in arbitrary uploaded student PDFs.
+
+Run `python -m alembic upgrade head` before restarting the core API/worker. The new
+`assignment_hint_banks` table is additive; the classroom launcher creates its local table
+at startup. Previously published classroom versions keep generic feedback until a new
+standard is published with approved hints. No answer key or whole hint bank is returned
+to the student API.

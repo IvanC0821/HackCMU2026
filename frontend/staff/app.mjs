@@ -1,7 +1,8 @@
+import {attachHintReview} from '../connected/hints.mjs';
 import {newWorkspace, STAFF_SCHEMA, activeRubric, loadSampleRubric, publishDraft, addQuestion, addCriterion, seedClass, addSampleRevision, updateOutcome, markSkimmed, completeReview, reopenReview, prepareCurrentReviews, draftAnnouncement, parsePageList, record, touch} from './model.mjs';
 import {renderWorkspace, routeFrom, escapeHTML} from './view.mjs';
 import {openStore} from './storage.mjs';
-import {connected, openRemoteStore, addSignOut} from '../connected/client.mjs';
+import {connected, openRemoteStore, addSignOut, json} from '../connected/client.mjs';
 import {apiRequest, generateApiDraft} from './api.mjs';
 import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, appealCase} from './case.mjs';
 
@@ -29,6 +30,7 @@ function render(focus = false) {
     ]);
     for (const el of appRoot.querySelectorAll('.quiet-note, .privacy-note')) if (copy.has(el.textContent)) el.textContent = copy.get(el.textContent);
   }
+  if (connected && ui.route === 'standards') attachHintReview(appRoot, async () => { await saveChain; assertWritable(); }, async () => { state.dirty = true; touch(state); await save(); ui.message = 'Hints approved. Finalize the grading standard to release them.'; render(); });
   if (focus) document.querySelector('#main')?.focus({preventScroll: true});
 }
 function announce(text) { document.querySelector('#announcement').textContent = text; }
@@ -90,7 +92,7 @@ document.addEventListener('click', async event => {
       submitCaseFinal(state); ui.message = 'Final demo version submitted. Your TA can now complete the review.';
     }
     if (action === 'reopen-case') { reopenCaseSubmission(state); ui.message = 'Demo submission reopened for another rehearsal. Earlier work is preserved.'; }
-    if (action === 'publish') { const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
+    if (action === 'publish') { if (connected) { await saveChain; assertWritable(); const bank = await json('/hint-bank'); if (bank.status !== 'approved') throw Error('Review and approve the assignment hints before finalizing.'); } const version = publishDraft(state); version.title = state.title; ui.message = connected ? `Standard v${version.id} published to students.` : `Standard v${version.id} finalized locally. Existing reviews keep their original standard.`; location.hash = '#/homework/1'; }
     if (action === 'add-question') { addQuestion(state); ui.editQ = state.draft.length - 1; }
     if (action === 'add-criterion') { addCriterion(state.draft[Number(button.dataset.q)]); state.dirty = true; touch(state); }
     if (action === 'remove-criterion') { state.draft[Number(button.dataset.q)].criteria.splice(Number(button.dataset.c), 1); state.dirty = true; touch(state); }

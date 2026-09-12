@@ -46,7 +46,7 @@ flow in a real browser, including cross-origin session rejection.
 | Grading | Shared manual/AI result records; code calculates points from selected rubric bands |
 | Proof feedback | Evidence-linked findings, conceptual/procedural/execution classifications, approved hint ladders |
 | AI review | Proposals remain review-required; an instructor must acknowledge review to finalize |
-| Immediate hints | Can be issued before grade finalization; uncached AI/OCR still takes processing time |
+| Immediate hints | Saved, professor-approved hints are immediate; OCR/assessment still takes processing time |
 | Annotations | Page-specific points in unrotated PDF space; manual placement and evidence-derived placement |
 | Analytics | Distinct-student question/pattern aggregates, uncertainty coverage, version and attempt selection |
 | Access | Global users, course memberships, staff/student projections, expiring local tokens or verified external JWTs |
@@ -119,10 +119,10 @@ flowchart LR
     DB --> Worker[Separate job worker]
     Worker --> Parse[Parse documents and rubric]
     Parse --> Identify[Identify criterion outcomes and findings]
-    Identify --> Respond[Prepare permitted hints]
+    Identify --> Respond[Select approved saved hints]
     Parse -. optional .-> OCR[Hosted GLM-OCR]
     Identify -. optional .-> Model[Configured OpenAI model]
-    Respond -. optional .-> Model
+    Parse -. draft assignment hints .-> Model
     Worker --> DB
     DB --> Reports[SQL analytics]
     DB --> Review[Instructor review and finalization]
@@ -402,11 +402,11 @@ Other independent settings are `location_visibility` (point/question/hidden),
 `max_findings`, `max_words`, `allow_generated` and `show_scores`.
 The server enforces these settings; a client cannot override them through its request.
 
-Approved pattern hints or a short generic template are available without AI.
-Generated hints are optional and advisory: structural checks cannot guarantee semantic
-nondisclosure of free-form text. Use approved hints for strict assignments. Repeated
-requests reuse cached text for the same finding version/level/source. Instructor
-edits invalidate that cache through versioning. Already-issued text remains in history.
+Assignment setup prepares rubric hints or conservative templates without AI; optional AI
+uses the current standard and attached graded examples to draft them. Professors review and
+edit all hints before publication. Feedback selects saved text within the disclosure policy,
+without a generation call. Published banks are immutable; changed standards get a new bank.
+Already-issued text remains in history.
 Issuance is recorded; reading, understanding, or causal learning improvement is not inferred.
 
 ## 10. Jobs, retries and analytics
@@ -510,7 +510,7 @@ validation constraints are defined in [OpenAPI](backend/openapi.json).
 | POST | `/assessments/{id}/findings` | Manual finding |
 | PATCH | `/findings/{id}` | Full finding edit/dismissal with expected version |
 | POST | `/assessments/{id}:finalize` | Instructor review acknowledgment and final grade |
-| POST | `/assessments/{id}/feedback` | Issue manual, approved or generated feedback |
+| POST | `/assessments/{id}/feedback` | Issue manual or approved saved feedback |
 | GET | `/submissions/{id}/feedback` | Issued-feedback history |
 | POST | `/assessments/{id}/math-checks` | Bounded rational polynomial identity check |
 | GET | `/jobs/{id}` | Authorized status and safe result/error |
@@ -598,3 +598,23 @@ rules, model-based analytics summaries and a polished student/instructor applica
 Live handwriting accuracy, feedback quality and grading quality require evaluation
 with instructor-approved examples. The current debug console is for testing those
 workflows, not a production student interface.
+
+## Assignment hint banks (current workflow)
+
+Hints are now prepared during assignment/rubric setup, reviewed and editable by the
+professor, and frozen with the published standard. Feedback requests select these saved
+hints immediately; they no longer generate text per student or request. The compatibility
+`source: ai` request also serves the approved bank. Final grade review remains separate.
+
+In the connected website, open **Grading standards → Assignment hints → Review / refresh
+hints**, edit the text, approve it, then finalize the standard. Attached past graded PDFs
+are used by the setup model to calibrate mistakes and teaching style. Private calibration
+notes and source IDs let the professor inspect that influence. The current rubric takes
+precedence over historical examples, and scores are never silently adjusted.
+
+The default launcher uses editable templates without external calls; `--ai-hints` enables
+AI setup drafts and the background worker. Core assignments use `external_ai_allowed` and
+`feedback_policy.allow_generated` plus the server's AI setting. New core assignments return
+`setup_job_id` when initial rubric drafting was queued. Core document uploads support
+`kind=graded_example`. See [the backend workflow](backend/README.md#hints-prepared-during-assignment-setup)
+for endpoints, approval/version rules, limits, and the additive database migration.

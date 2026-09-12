@@ -120,6 +120,7 @@ def homework(env):
     rubric = call(
         env, "POST", f"/assignments/{assignment['id']}/rubric-versions", body=spec, expected=201
     )
+    approve_hints(env, rubric["id"])
     call(env, "POST", f"/rubric-versions/{rubric['id']}:publish")
     doc = call(
         env,
@@ -174,3 +175,13 @@ def finding_body(homework):
         "description": "The k+1 statement is assumed.",
         "evidence_region_ids": [homework["regions"][0]["id"]],
     }
+
+
+def approve_hints(env, rubric_id):
+    bank = call(env, "GET", f"/rubric-versions/{rubric_id}/hint-bank")
+    return call(
+        env,
+        "POST",
+        f"/rubric-versions/{rubric_id}/hint-bank:approve",
+        body={"expected_version": bank["version"]},
+    )

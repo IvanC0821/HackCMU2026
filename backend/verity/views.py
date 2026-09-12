@@ -21,6 +21,7 @@ class CourseView(BaseModel):
 
 
 class AssignmentView(BaseModel):
+    setup_job_id: str | None = None
     id: str
     course_id: str
     title: str
@@ -126,6 +127,8 @@ class AssessmentView(BaseModel):
 
 
 class FeedbackItemView(BaseModel):
+    hint_bank_id: str | None = None
+    hint_bank_version: int | None = None
     text: str
     level: int
     source: str
