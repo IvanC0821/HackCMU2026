@@ -17,7 +17,8 @@ const paths={
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>'
 };
 const icon=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]||paths.file}</svg>`;
-const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:1,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,noteOpen:false,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
+const DEFAULT_ZOOM=.65;
+const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:DEFAULT_ZOOM,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,noteOpen:false,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
 let pdfjs,drawEpoch=0,loadEpoch=0,currentController,pageRenderTask;
 let currentAssignment = null, remoteRevision = -1, refreshing = false;
 function setAssignment(raw) {
@@ -82,7 +83,7 @@ function review(){
  return `<div class="review-page">${errorHTML()}${state.storageWarning?`<div class="error">${esc(state.storageWarning)}</div>`:''}
  <div class="mobile-switch" aria-label="Workspace view"><button class="${state.mobilePanel==='document'?'active':''}" data-panel="document">${icon('file')}Submission</button><button class="${state.mobilePanel==='feedback'?'active':''}" data-panel="feedback">${icon('chat')}Questions & estimates</button></div>
  <div class="review-grid" data-mobile-panel="${state.mobilePanel}">
- <section class="pdf-section" aria-label="Submitted PDF"><div class="pdf-toolbar"><span class="pdf-name" title="${esc(state.fileName)}">${icon('file')}${esc(state.fileName)}</span><div class="zoom-controls" aria-label="PDF zoom"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.75?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width" title="Reset to fit width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=3?'disabled':''}>${icon('plus')}</button></div></div>
+ <section class="pdf-section" aria-label="Submitted PDF"><div class="pdf-toolbar"><span class="pdf-name" title="${esc(state.fileName)}">${icon('file')}${esc(state.fileName)}</span><div class="zoom-controls" aria-label="PDF zoom"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.5?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width" title="Reset to fit width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=3?'disabled':''}>${icon('plus')}</button></div></div>
  <div class="pdf-scroll" id="pdf-scroll"><div class="paper-wrapper" id="paper-wrapper"><canvas id="pdf-canvas" tabindex="-1" aria-label="Submitted work, page ${state.page+1}"></canvas><div id="annotation-highlights" class="annotation-highlights" aria-hidden="true"></div><div id="markers" class="markers"></div><div id="annotation-note" class="annotation-note"></div><p id="page-transcript" class="sr-only"></p></div></div>
  <div class="pdf-bottom"><div class="page-controls"><button class="icon-button" data-action="prev" aria-label="Previous page" ${state.page===0?'disabled':''}>${icon('back')}</button><label for="page-select" class="sr-only">PDF page</label><select id="page-select">${Array.from({length:state.pdf?.numPages||0},(_,i)=>`<option value="${i}" ${state.page===i?'selected':''}>Page ${i+1} of ${state.pdf.numPages}</option>`).join('')}</select><button class="icon-button" data-action="next" aria-label="Next page" ${state.page>=(state.pdf?.numPages||1)-1?'disabled':''}>${icon('arrow')}</button></div><button class="text-button download-original" data-action="download">${icon('down')}Download original</button></div></section>
  <aside class="feedback-panel" aria-label="Questions and estimated deductions"><div class="student-sidebar-heading"><h1>Questions</h1><span>Estimated grades</span></div>
@@ -125,7 +126,7 @@ async function loadFile(file,{sample=false}={}) {
    const bytes=await file.arrayBuffer();const pdf=await openPdf(bytes);
    if(epoch!==loadEpoch){await pdf.loadingTask.destroy();return;}
    pageRenderTask?.cancel();await state.pdf?.loadingTask.destroy();
-   Object.assign(state,{pdf,bytes,fileName:file.name,sample,mapping:emptyMapping(),question:assignment.questions[0].id,page:0,zoom:1,result:null,revision:null,activeFinding:null,view:'mapping',thumbs:new Map()});
+   Object.assign(state,{pdf,bytes,fileName:file.name,sample,mapping:emptyMapping(),question:assignment.questions[0].id,page:0,zoom:DEFAULT_ZOOM,result:null,revision:null,activeFinding:null,view:'mapping',thumbs:new Map()});
    announce(`PDF opened. ${pdf.numPages} pages. Assign pages to each question.`);
  } catch(error){state.error=error.message?.includes('10 pages')?error.message:'This PDF could not be opened. Check that it isn’t damaged or password-protected, then choose another copy.';}
  finally {if(epoch===loadEpoch){state.busy=false;render({focus:true});}}
@@ -231,7 +232,7 @@ async function submit(){
  if(state.busy||!state.pdf)return;
  const missing=mappingIssues(state.mapping,state.pdf.numPages);
  if(missing.length){state.error='Assign at least one page to every question.';render();return;}
- state.error='';state.storageWarning='';state.busy=true;state.progress=state.sample?'Preparing sample feedback…':'Saving your submission…';state.view='review';state.result=null;state.page=state.mapping.q1[0]||0;state.question='q1';state.zoom=1;state.activeFinding=null;
+ state.error='';state.storageWarning='';state.busy=true;state.progress=state.sample?'Preparing sample feedback…':'Saving your submission…';state.view='review';state.result=null;state.page=state.mapping.q1[0]||0;state.question='q1';state.zoom=DEFAULT_ZOOM;state.activeFinding=null;
  const revision=makeRevision({fileName:state.fileName,bytes:state.bytes,mapping:state.mapping,result:null,number:Math.max(0,...state.revisions.map(r=>r.number))+1,sample:state.sample});
  state.revision=revision;state.revisions.unshift(revision);render({focus:true});
  try{await saveRevision(revision);}catch{state.storageWarning='Browser storage is unavailable. This version is kept only until you close or refresh the page.';}
@@ -252,7 +253,7 @@ async function restore(id){
   if(connected){revision.bytes ||= await revisionBytes(revision);setAssignment(revision.assignment);}
   const pdf=await openPdf(revision.bytes);pageRenderTask?.cancel();await state.pdf?.loadingTask.destroy();
   const first=revision.result?.findings[0];
-  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,noteOpen:false,view:'review',zoom:1,error:'',mobilePanel:'document'});
+  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,noteOpen:false,view:'review',zoom:DEFAULT_ZOOM,error:'',mobilePanel:'document'});
  }catch(error){console.warn('Saved PDF restore failed:',error.message);state.error='The saved PDF could not be reopened. Upload it again to create another version.';}
  finally{state.busy=false;render({focus:true});}
 }
@@ -278,7 +279,7 @@ async function action(name){
  if(name==='prev')state.page=Math.max(0,state.page-1);
  if(name==='next')state.page=Math.min(state.pdf.numPages-1,state.page+1);
  if(name==='zoom-in')state.zoom=Math.min(3,state.zoom+.25);
- if(name==='zoom-out')state.zoom=Math.max(.75,state.zoom-.25);
+ if(name==='zoom-out')state.zoom=Math.max(.5,state.zoom-.25);
  if(name==='zoom-reset')state.zoom=1;
  render();document.querySelector(`[data-action="${name}"]`)?.focus({preventScroll:true});
 }

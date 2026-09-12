@@ -109,15 +109,19 @@ export function addSignOut() {
     if (document.querySelector('.demo-switcher')) return;
     document.body.classList.add('open-demo');
     const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
-    nav.innerHTML = `<details class="demo-menu"><summary aria-label="Demo options">Demo<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><div class="demo-popover"><p>Explore with example data.</p></div></details><div class="demo-perspectives" aria-label="Switch view"><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA</a></div>`;
+    nav.innerHTML = `<div id="demo-controls" class="demo-controls"><div class="demo-context"><span>Demo</span></div><div class="demo-perspectives" aria-label="Switch view"><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA</a></div></div><button class="demo-toggle" type="button" aria-controls="demo-controls" aria-expanded="true" aria-label="Collapse demo bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>`;
     document.body.prepend(nav);
-    const menu = nav.querySelector('.demo-menu');
-    document.addEventListener('pointerdown', event => { if (!menu.contains(event.target)) menu.open = false; });
-    menu.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); event.stopPropagation(); }
+    const toggle = nav.querySelector('.demo-toggle'), controls = nav.querySelector('.demo-controls');
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.setAttribute('aria-label', expanded ? 'Collapse demo bar' : 'Expand demo bar');
+      controls.hidden = !expanded;
+      document.body.classList.toggle('demo-collapsed', !expanded);
+      dispatchEvent(new Event('resize'));
     });
     if (demoStudents.length) {
-      const label = document.createElement('label'); label.textContent = 'Demo student';
+      const label = document.createElement('label'); label.className = 'demo-student';
       const select = document.createElement('select'); select.setAttribute('aria-label', 'Demo student');
       for (const student of demoStudents) {
         const option = document.createElement('option'); option.value = student.id;
@@ -129,7 +133,7 @@ export function addSignOut() {
         sessionStorage.setItem(studentKey, select.value);
         if (perspective === 'student') location.reload(); else location.assign('/student/');
       });
-      label.append(select); nav.querySelector('.demo-popover').append(label);
+      label.append(select); nav.querySelector('.demo-context').append(label);
     }
     return;
   }

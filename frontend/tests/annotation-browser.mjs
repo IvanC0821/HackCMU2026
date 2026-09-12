@@ -58,6 +58,8 @@ try{
  await page.setViewportSize({width:1600,height:1000});
  await page.goto(origin+'/?example=graded');
  await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−4'}).waitFor();
+ assert.equal(await page.locator('.zoom-reset').innerText(),'65%','Submissions open at 65% zoom');
+ assert(await page.evaluate(()=>document.querySelector('#pdf-canvas').clientHeight<=document.querySelector('#pdf-scroll').clientHeight),'The initial desktop view fits the sample page height');
  assert.match(await page.locator('.estimate').innerText(),/24\s*\/ 30/);
  assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
  assert.match(await page.locator('.feedback-card').innerText(),/Estimated deduction/);
@@ -104,6 +106,7 @@ try{
  await page.goto(origin+'/student/');
  await page.locator('[data-action="latest"]').click();
  await page.locator('.pdf-hint-box').waitFor();
+ assert.equal(await page.locator('.zoom-reset').innerText(),'65%','Connected submissions use the same initial zoom');
  assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
  assert.doesNotMatch(await page.locator('.estimate').innerText(),/Not official/);
  assert.doesNotMatch(await page.locator('#app').innerText(),/\bTA\b|Professor|Reviewed score|Imported professor grade/);
@@ -114,18 +117,23 @@ try{
  for(const width of [1600,390]){
   await page.setViewportSize({width,height:900});
   for(const role of ['Student','TA'])assert(await page.locator('.demo-perspectives').getByRole('link',{name:role,exact:true}).isVisible());
-  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false);
-  await page.getByLabel('Demo options',{exact:true}).click();
+  assert.equal(await page.locator('.demo-menu').count(),0,'No top-left dropdown');
+  const button=page.getByRole('button',{name:'Collapse demo bar',exact:true});
+  const bar=await page.locator('.demo-switcher').boundingBox(),handle=await button.boundingBox();
+  assert(Math.abs(handle.x+handle.width/2-width/2)<1,'Chevron is centered at the bottom of the bar');
+  assert(Math.abs(handle.y-bar.y-bar.height)<1);
+  await button.click();
+  assert.equal(await page.locator('#demo-controls').isVisible(),false);
+  assert.equal(await page.evaluate(()=>parseFloat(getComputedStyle(document.body).paddingTop)),0,'Collapsed bar releases its space');
+  const expand=page.getByRole('button',{name:'Expand demo bar',exact:true});
+  assert(await expand.isVisible(),'The centered handle stays visible when collapsed');
+  await page.screenshot({path:`/private/tmp/verity-demo-collapsed-${width}.png`,fullPage:true});
+  await expand.press('Enter');
   await page.getByLabel('Demo student',{exact:true}).waitFor({state:'visible'});
-  const menu=await page.locator('.demo-popover').boundingBox();assert(menu.x>=0&&menu.x+menu.width<=width);
-  await page.getByLabel('Demo options',{exact:true}).press('Escape');
-  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false);
-  await page.getByLabel('Demo options',{exact:true}).press('Enter');
-  await page.locator('.estimate').click();
-  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false,'Clicking outside closes the dropdown');
+  assert.equal(await page.locator('.demo-toggle').getAttribute('aria-expanded'),'true');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
- await page.getByLabel('Demo options',{exact:true}).click();
- await page.screenshot({path:'/private/tmp/verity-demo-dropdown-mobile.png',fullPage:true});
+ await page.screenshot({path:'/private/tmp/verity-demo-expanded-mobile.png',fullPage:true});
  await page.getByLabel('Demo student',{exact:true}).selectOption('demo-two');
  await page.locator('[data-action="latest"]').waitFor();
  assert.equal(await page.evaluate(()=>sessionStorage.getItem('verity-demo-student')),'demo-two');
