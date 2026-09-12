@@ -255,4 +255,6 @@ The student assignment/feedback whitelist must never include crops or solutions.
 
 Implementation scope includes staff model/view/controller modules, their browser
 preview builder and tests, plus the classroom static-asset allowlist and privacy
-regression test. No new API endpoint or database migration is required.
+regression test. The connected persistence adapter uses the workspace PUT response
+as its saved revision, avoiding a separate read that can race rapid edits.
+No new API endpoint or database migration is required.
