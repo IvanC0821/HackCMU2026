@@ -1,6 +1,6 @@
 import {assignment,emptyMapping,togglePage,mappingIssues,validatePdf,makeRevision,assessSubmission} from './model.mjs';
 import {readRevisions,saveRevision} from './storage.mjs';
-import {located, locationLabel, layoutMarkers, markerMarkup, detailMarkup} from './annotations.mjs';
+import {located, locationLabel, findingNumber, layoutMarkers, markerMarkup, detailMarkup} from './annotations.mjs';
 const connected = location.pathname === '/student/';
 const {requireRole, addSignOut, fetchStudent, submitStudent, revisionBytes, post, request} = connected ? await import('../connected/client.mjs') : {};
 
@@ -17,7 +17,7 @@ const paths={
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>'
 };
 const icon=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]||paths.file}</svg>`;
-const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:1,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
+const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:1,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,noteOpen:false,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
 let pdfjs,drawEpoch=0,loadEpoch=0,currentController,pageRenderTask;
 let currentAssignment = null, remoteRevision = -1, refreshing = false;
 function setAssignment(raw) {
@@ -72,7 +72,7 @@ function feedbackBody(){
  if(!state.result)return `<div class="feedback-empty">${icon('clock')}<h3>Saved. Feedback is pending.</h3><p>Your PDF and page assignments are saved locally. Live grading isn’t connected in this preview.</p><p>No score or error markers have been generated for your file.</p>${btn('Retry connection','retry','secondary')}<button class="text-button" data-action="sample">Explore sample feedback ${icon('arrow')}</button></div>`;
  const findings=state.result.findings.filter(f=>f.questionId===state.question);
  return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':'No issues flagged'}</h2><p>${findings.length?'Select a yellow marker to see the kind of issue.':'There are no feedback markers for this question in the sample.'}</p></div>
- ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">?</span><strong>${esc(f.category)}</strong><span class="possible">Possible issue</span></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">Page ${f.pageIndex+1} ${icon('arrow')}</span></button>`).join('')}
+ ${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}" aria-pressed="${state.activeFinding===f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong><span class="possible">Possible issue</span></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">Page ${f.pageIndex+1} ${icon('arrow')}</span></button>`).join('')}
  <div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div>
  <div class="sample-disclaimer">Sample feedback is preset. It illustrates the experience, not a live model assessment.</div>`;
 }
@@ -166,7 +166,7 @@ function paintMarkers(){
  const target=$('#markers');if(!target)return;
  const wrapper=$('#paper-wrapper');
  const placements=layoutMarkers(state.result?.findings||[],state.page,wrapper.clientWidth,wrapper.clientHeight);
- target.innerHTML=markerMarkup(placements,state.activeFinding);
+ target.innerHTML=markerMarkup(placements,state.activeFinding,state.noteOpen);
  paintAnnotationDetail();
 }
 function paintAnnotationDetail(){
@@ -175,27 +175,27 @@ function paintAnnotationDetail(){
  const placement=placements.find(p=>p.finding.id===state.activeFinding);
  const detail=detailMarkup(placement?.finding,placement,wrapper.clientWidth,wrapper.clientHeight);
  $('#annotation-highlights').innerHTML=detail.highlights;
- $('#annotation-note').innerHTML=detail.note;
+ $('#annotation-note').innerHTML=state.noteOpen?detail.note:'';
 }
 function closeAnnotation(){
- const previous=state.activeFinding;state.activeFinding=null;
+ const previous=state.activeFinding;state.activeFinding=null;state.noteOpen=false;
  paintAnnotationDetail();
  document.querySelectorAll('[data-marker]').forEach(el=>{el.classList.remove('selected');el.setAttribute('aria-pressed','false');el.setAttribute('aria-expanded','false');});
  document.querySelectorAll('[data-finding]').forEach(el=>el.classList.remove('selected'));
  // Focusing a marker opens feedback; restore focus to the viewer instead on dismissal.
  if(previous)$('#pdf-canvas')?.focus({preventScroll:true});
 }
-function activateFinding(id,{navigate=false}={}){
+function activateFinding(id,{navigate=false,showNote=true}={}){
  const f=state.result?.findings.find(item=>item.id===id);if(!f)return;
  const changeQuestion=state.question!==f.questionId;
  const changePanel=navigate&&located(f)&&state.mobilePanel!=='document';
- state.activeFinding=id;state.question=f.questionId;state.tab='feedback';
+ state.activeFinding=id;state.question=f.questionId;state.tab='feedback';state.noteOpen=showNote;
  if(navigate&&located(f))state.mobilePanel='document';
  if(navigate&&located(f)&&state.page!==f.pageIndex){state.page=f.pageIndex;render();return;}
  if(changeQuestion||changePanel){render();return;}
  $('#feedback-body').innerHTML=feedbackBody();
  document.querySelectorAll('[data-tab]').forEach(el=>el.classList.toggle('active',el.dataset.tab==='feedback'));
- document.querySelectorAll('[data-marker]').forEach(el=>{const active=el.dataset.marker===id;el.classList.toggle('selected',active);el.setAttribute('aria-pressed',String(active));el.setAttribute('aria-expanded',String(active));});
+ document.querySelectorAll('[data-marker]').forEach(el=>{const active=el.dataset.marker===id;el.classList.toggle('selected',active);el.setAttribute('aria-pressed',String(active));el.setAttribute('aria-expanded',String(active&&state.noteOpen));});
  paintAnnotationDetail();
  announce(`${f.category}. ${f.message}`);
 }
@@ -225,7 +225,7 @@ async function restore(id){
   if(connected){revision.bytes ||= await revisionBytes(revision);setAssignment(revision.assignment);}
   const pdf=await openPdf(revision.bytes);pageRenderTask?.cancel();await state.pdf?.loadingTask.destroy();
   const first=revision.result?.findings[0];
-  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,view:'review',zoom:1,error:'',mobilePanel:'document'});
+  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,noteOpen:false,view:'review',zoom:1,error:'',mobilePanel:'document'});
  }catch(error){console.warn('Saved PDF restore failed:',error.message);state.error='The saved PDF could not be reopened. Upload it again to create another version.';}
  finally{state.busy=false;render({focus:true});}
 }
@@ -256,14 +256,14 @@ document.addEventListener('click',event=>{
  if(event.target.closest('[data-annotation-close]')){closeAnnotation();return;}
  const el=event.target.closest('[data-action],[data-question],[data-finding],[data-marker],[data-tab],[data-panel]');if(!el||el.disabled)return;
  if(el.dataset.action){event.preventDefault();action(el.dataset.action);return;}
- if(el.dataset.question){state.question=el.dataset.question;state.activeFinding=null;if(state.view==='review'){const f=state.result?.findings.find(f=>f.questionId===state.question);state.page=f?.pageIndex??state.mapping[state.question]?.[0]??0;state.activeFinding=f?.id||null;}render();document.querySelector(`[data-question="${state.question}"]`)?.focus({preventScroll:true});}
+ if(el.dataset.question){state.question=el.dataset.question;state.activeFinding=null;state.noteOpen=false;if(state.view==='review'){const f=state.result?.findings.find(f=>f.questionId===state.question);state.page=f?.pageIndex??state.mapping[state.question]?.[0]??0;state.activeFinding=f?.id||null;}render();document.querySelector(`[data-question="${state.question}"]`)?.focus({preventScroll:true});}
  if(el.dataset.finding)activateFinding(el.dataset.finding,{navigate:true});
  if(el.dataset.marker)activateFinding(el.dataset.marker);
  if(el.dataset.tab){state.tab=el.dataset.tab;render();document.querySelector(`[data-tab="${state.tab}"]`)?.focus({preventScroll:true});}
  if(el.dataset.panel){state.mobilePanel=el.dataset.panel;render();document.querySelector(`[data-panel="${state.mobilePanel}"]`)?.focus({preventScroll:true});}
 });
-document.addEventListener('pointerover',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker);});
-document.addEventListener('focusin',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker);});
+document.addEventListener('pointerover',event=>{const el=event.target.closest('[data-marker]');if(el&&state.activeFinding!==el.dataset.marker)activateFinding(el.dataset.marker,{showNote:false});});
+document.addEventListener('focusin',event=>{const el=event.target.closest('[data-marker]');if(el&&(state.activeFinding!==el.dataset.marker||!state.noteOpen))activateFinding(el.dataset.marker);});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.activeFinding){event.preventDefault();closeAnnotation();}});
 document.addEventListener('change',event=>{
  const el=event.target;
@@ -295,7 +295,7 @@ function connectedFeedback() {
  if(!state.result)return `<div class="feedback-empty">${icon('clock')}<h3>Saved to your course</h3><p>Your PDF and page assignments are available to your TA. Feedback will appear here automatically.</p><p>Live AI grading is not enabled. No score or error locations have been invented for this file.</p></div>`;
  const findings=state.result.findings.filter(f=>f.questionId===state.question);
  const scored=state.result.questions.find(q=>q.id===state.question)?.score!=null;
- return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':scored?'No issues flagged':'This question is pending'}</h2><p>${findings.length?'Click a yellow marker on your PDF to inspect the related work.':'Your TA reviews the original work.'}</p></div>${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}"><span class="feedback-card-top"><span class="question-mark">?</span><strong>${esc(f.category)}</strong></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))}</span></button>`).join('')}<div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div><div class="sample-disclaimer">${state.result.source==='ai-recorded'?'Recorded AI estimate · ':state.result.source==='ai'?'AI estimate · ':''}${state.result.reviewed?(state.result.source==='professor-import'?'Imported professor grade.':'Reviewed by your TA.'):'Provisional until TA review.'} Staff solutions and private grading notes are not shared.</div>`;
+ return `<div class="feedback-intro"><h2>${findings.length?'A place to take another look':scored?'No issues flagged':'This question is pending'}</h2><p>${findings.length?'Match each numbered note to the same number on your PDF.':'Your TA reviews the original work.'}</p></div>${findings.map(f=>`<button class="feedback-card ${state.activeFinding===f.id?'selected':''}" data-finding="${f.id}"><span class="feedback-card-top"><span class="question-mark">${findingNumber(state.result.findings,f.id)}</span><strong>${esc(f.category)}</strong></span><span class="feedback-message">${esc(f.message)}</span><span class="feedback-location">${esc(locationLabel(f))}</span></button>`).join('')}<div class="feedback-guidance">${icon('chat')}<div><strong>Still unsure?</strong><p>Bring this question and your reasoning to office hours.</p></div></div><div class="sample-disclaimer">${state.result.source==='ai-recorded'?'Recorded AI estimate · ':state.result.source==='ai'?'AI estimate · ':''}${state.result.reviewed?(state.result.source==='professor-import'?'Imported professor grade.':'Reviewed by your TA.'):'Provisional until TA review.'} Staff solutions and private grading notes are not shared.</div>`;
 }
 async function connectedSubmit() {
  if(state.busy||!state.pdf)return;

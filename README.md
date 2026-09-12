@@ -38,10 +38,11 @@ the hidden professor grade on all 19 parts. These are recorded results, not fres
 live grading. Select a student and click **View submission**; open the teacher's
 Review queue or Overview to see the same records and live chart.
 
-**PDF feedback:** yellow `?` icons sit beside matched lines or related work on the
-actual submitted PDF. Click, hover or focus an icon to highlight the area and open
-a short, solution-free explanation; Escape closes it. Markers track page changes
-and zoom. Context-only locations are explicitly labeled, not presented as exact
+**PDF feedback:** small numbered badges connect to matched lines or related work
+with thin leader lines. The same numbers appear in the feedback panel. Hover to
+highlight the work; click or keyboard-focus to open a short, solution-free popup;
+Escape closes it. Popups stay closed when opening a submission or changing questions.
+Markers track page changes and zoom. Context-only locations are explicitly labeled, not presented as exact
 mistaken lines. Image-only scans still need OCR-backed locations.
 
 Existing local databases can add these locations without regrading or paid calls:
@@ -85,7 +86,7 @@ API remains available separately. This is a loopback development demo, not a
 production deployment or university SSO integration.
 
 Validation: 88 backend tests passed (2 paid-service tests skipped), 66 staff/shared
-frontend tests passed, and 12 student tests passed. The new integration checks
+frontend tests passed, and 14 student tests passed. The new integration checks
 cover privacy, stale writes, immutable uploads, page maps, revisions and chart
 changes from 80% first attempt to 100% latest attempt without counting pending as zero.
 
