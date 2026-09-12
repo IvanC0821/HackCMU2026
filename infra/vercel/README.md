@@ -30,7 +30,7 @@ Vercel serves the real UI, PDF.js and approved downloads. `/classroom/*` forward
 - GPT-5.4, medium reasoning. Persistent ceiling: 12 new paid requests total across rubric/hints/assessment; no automatic provider retries. This is a request ceiling, not a dollar guarantee. The existing count was preserved during the dataset swap.
 - `runtime/processes.json` identifies backend, tunnel and keep-awake PIDs. Logs and budget database remain under ignored `runtime/`.
 - The Vercel project's Git integration is disconnected so pushes cannot replace the working deployment with an unconfigured build.
-- The team's port 3004 and recording port 3006 were not changed. Those older local environments and the old video still contain real class materials and must not be presented as the fictional judge demo.
+- The team's port 3004 and recording port 3006 were not changed. Ivan explicitly confirmed the existing video stays unchanged; the fictional-material requirement applies to the public website.
 
 ## Prepare / redeploy
 
