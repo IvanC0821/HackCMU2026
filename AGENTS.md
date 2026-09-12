@@ -27,7 +27,7 @@ Fill this in at kickoff. An area with no owner is frozen until someone claims it
 
 | Area | Directory | Owner branch prefix | Owner |
 |---|---|---|---|
-| Frontend | `frontend/` | `agent/frontend/*` | |
+| Frontend | `frontend/` | `agent/frontend/*` | Codex (debug console) |
 | Backend / API | `backend/` | `agent/backend/*` | Codex (math homework MVP) |
 | Data / ML | `ml/` | `agent/ml/*` | |
 | Infra / deploy | `infra/` | `agent/infra/*` | |

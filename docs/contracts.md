@@ -132,3 +132,22 @@ Generated `backend/openapi.json` is the frontend schema reference.
 - AI-generated drafts are edited by posting a revised spec as a new draft version.
 - Rubrics, source materials, and assignment policy are immutable in the MVP. New
   policies use a new assignment; new rubrics can be published on the same assignment.
+
+## Debug frontend
+
+The unlinked `/__debug__/` path is a static, plain HTML/JavaScript API console in
+`frontend/__debug__/`. It does not add or bypass API permissions. A configurable
+API origin defaults to `http://localhost:8000`; serve `frontend/` on
+`http://localhost:3000` to match the default CORS configuration. The future website
+can host this folder at the same path without adding it to navigation.
+
+Inputs: staff/student bearer tokens (in memory only), active identity, resource
+IDs, request preset, HTTP method, API path, JSON body, optional PDF and idempotency
+key. Outputs: HTTP status, elapsed time, raw JSON/text or a private binary download.
+Presets cover the math-homework workflow. All mutations require an explicit Send;
+job watching only polls GET. Request paths are constrained to the chosen origin;
+tokens are never written to browser storage, request logs or output JSON.
+
+No new backend environment variables or API endpoints are introduced. The debug
+page is unlinked and marked noindex; the URL itself is not access control. Deploy
+it only where backend authorization and your deployment access rules are suitable.
