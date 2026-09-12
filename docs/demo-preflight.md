@@ -1,4 +1,12 @@
+---
+date: 2026-09-12
+description: "Latest-UI demo integration, objective checks, remaining real-file blockers and planned recording clicks."
+tags: [integration, demo, testing]
+---
+
 # Demo preflight, September 12
+
+Related: [[contracts]], [[submission-review-spec]].
 
 Latest fetched and fast-forward-checked upstream: `origin/main` at `812fb17`.
 Integration branch: `agent/integration/demo-preflight`. This combines the latest

@@ -1,3 +1,9 @@
+---
+date: 2026-09-12
+description: "Shared API contracts for reference ingestion, grading, approved hints and classroom review."
+tags: [contract, integration]
+---
+
 # Math homework API contract
 
 <!-- TODO: Replace the temporary Verity product name before launch. -->
