@@ -21,7 +21,7 @@ test('chart exposes real denominators, percentages and provisional sample disclo
 });
 test('PDF docs, page maps, alternatives, points and external consent appear in setup', () => {
   const html = renderWorkspace(fixture(), {...baseUI, route:'standards'});
-  for (const text of ['Blank PDF pages','Solution PDF pages','Accepted alternatives','Past graded work','Scoring guideline','Finalize grading standard','ai-consent']) assert(html.includes(text));
+  for (const text of ['Blank PDF pages','Solution PDF pages','Accepted alternatives','Past graded work','Deductions','Finalize grading standard','ai-consent']) assert(html.includes(text));
   assert.doesNotMatch(html, /Professor approval required|three checks/i);
 });
 test('one sample student has first-attempt work and previous version becomes read-only', () => {

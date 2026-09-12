@@ -82,6 +82,8 @@ try{
  assert(!await page.locator('[data-field="expected"]').isVisible());
  assert(!await page.locator('[data-edit="band"]').first().isVisible());
  await page.screenshot({path:'/private/tmp/verity-rubric-desktop.png',fullPage:true});
+ await page.locator('.item-deductions > summary').first().click();
+ await page.screenshot({path:'/private/tmp/verity-rubric-deductions.png',fullPage:true});
  await page.reload();await page.locator('.question-reference > summary').click();await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'Crops survive remote save and reload');
  await page.getByRole('button',{name:'Add question',exact:true}).click();
