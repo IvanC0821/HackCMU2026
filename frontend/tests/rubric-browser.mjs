@@ -80,9 +80,13 @@ try{
  await page.locator('.question-reference > summary').click();
  assert(!await page.locator('[data-field="assignmentPages"]').isVisible());
  assert(!await page.locator('[data-field="expected"]').isVisible());
- assert(!await page.locator('[data-edit="band"]').first().isVisible());
+ assert(await page.locator('[data-edit="band"]').first().isVisible(),'Deduction values are always visible');
  await page.screenshot({path:'/private/tmp/verity-rubric-desktop.png',fullPage:true});
- await page.locator('.item-deductions > summary').first().click();
+ await page.locator('.deduction-marker').first().click();
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'true');
+ await page.locator('.deduction-item').nth(1).click({position:{x:4,y:4}});
+ assert.equal(await page.locator('.deduction-marker').first().getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('.deduction-marker').nth(1).getAttribute('aria-pressed'),'true');
  await page.screenshot({path:'/private/tmp/verity-rubric-deductions.png',fullPage:true});
  await page.reload();await page.locator('.question-reference > summary').click();await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'Crops survive remote save and reload');
@@ -92,7 +96,6 @@ try{
  await q.locator('[data-field="prompt"]').fill('Explain your reasoning.');
  await q.getByRole('button',{name:'+ Rubric item'}).click();
  await q.locator('[data-edit="criterion"][data-field="label"]').fill('Justify the result');
- await q.locator('.item-deductions > summary').click();
  await q.locator('[data-edit="band"][data-field="label"]').first().fill('A valid justification');
  await q.locator('[data-field="prompt"]').click();
  await page.locator('.save-state').filter({hasText:'saved to course'}).waitFor();

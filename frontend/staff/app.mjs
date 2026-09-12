@@ -13,7 +13,7 @@ const appRoot = document.querySelector('#app'), dialog = document.querySelector(
 const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
-  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {},
+  setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {}, selectedDeduction: null,
   caseVariant: 'incomplete', caseJSON: JSON.stringify(caseWork.incomplete, null, 2), initializing: true};
 let channel, renderCycle = 0;
 try { channel = new BroadcastChannel('verity-staff-mvp'); } catch { /* Optional same-origin cross-tab notification. */ }
@@ -89,6 +89,20 @@ function focusAgain(button) {
 }
 document.addEventListener('click', async event => {
   if (ui.initializing) return;
+  const deductionRow = event.target.closest('[data-deduction-row]');
+  if (deductionRow && !ui.busy) {
+    const editing = event.target.closest('input, textarea, label');
+    ui.selectedDeduction = !editing && ui.selectedDeduction === deductionRow.dataset.deductionRow ? null : deductionRow.dataset.deductionRow;
+    for (const row of appRoot.querySelectorAll('[data-deduction-row]')) {
+      const selected = row.dataset.deductionRow === ui.selectedDeduction;
+      row.classList.toggle('is-selected', selected);
+      const marker = row.querySelector('.deduction-marker');
+      marker.setAttribute('aria-pressed', String(selected));
+      marker.textContent = selected ? '✓' : marker.dataset.rowNumber;
+    }
+    // Choosing an authoring row only changes editing focus, never student scores.
+    return;
+  }
   const jump = event.target.closest('[data-jump]');
   if (jump) { event.preventDefault(); document.getElementById(jump.dataset.jump)?.scrollIntoView({behavior: 'auto', block: 'center'}); return; }
   const button = event.target.closest('[data-action]'); if (!button || button.disabled) return;
