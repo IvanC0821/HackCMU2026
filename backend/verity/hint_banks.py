@@ -16,7 +16,7 @@ from .models import Document, HintBank, Job, Region
 from .pdf import render
 from .schemas import Strict
 
-PROMPT = "assignment-hints-v2"
+PROMPT = "assignment-hints-v3-observation-only"
 GENERIC = "Check which assumptions justify this step before continuing."
 
 
@@ -230,9 +230,19 @@ def generate(db, job):
         "tolerance and teaching style; do not copy names, grades or identifiable student passages. "
         "Record how examples informed the draft and any conflicts in private calibration_notes. "
         "Never change scoring or assume the reference solution is the only valid method. "
-        "Level 0: generic reconsideration only; 1: concept cue; 2: next thinking step without the repair; "
-        "3: local correction; 4: worked solution. Stay within max_words for every hint. "
-        "Do not expose private answers at lower levels. Return plain text hints.",
+        "Write exactly one brief sentence per student hint: an observation about work to reconsider, "
+        "not instructions for repairing it. No title, heading, error-type label, named diagnosis, "
+        "rubric label, or second follow-up sentence. Keep diagnostic categories and explanations "
+        "for the grader in private calibration_notes. Never include the correction, a worked step, "
+        "the answer, or a leading question that reveals what to write next. "
+        "Use these as style examples, adapting only when supported by the target: "
+        "'The next case is assumed rather than derived.' "
+        "'The condition k > 0 does not specify which values k can take.' "
+        "Stop after that observation; do not append 'Use the induction hypothesis' or "
+        "'State the domain', and do not name 'circular reasoning' or 'missing domain' in hint text. "
+        "Disclosure levels are ceilings, not requests for more detail: level 0 stays generic, "
+        "and every higher level still follows this observation-only style. Stay within max_words "
+        "for every hint. Return plain text hints.",
         {"assignment": bank.context, "entries": bank.entries, "materials": materials},
         images,
     )

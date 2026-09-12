@@ -95,6 +95,11 @@ def test_generation_uses_attached_graded_examples_and_preserves_professor_overri
 
     def generate(schema, instructions, payload, images):
         captured.append(payload)
+        assert "exactly one brief sentence" in instructions
+        assert "The next case is assumed rather than derived." in instructions
+        assert "The condition k > 0 does not specify which values k can take." in instructions
+        assert "No title, heading, error-type label, named diagnosis" in instructions
+        assert "Never include the correction" in instructions
         assert len(images) == 2
         assert any(m["kind"] == "graded_example" and m["text"] for m in payload["materials"])
         entries = [
