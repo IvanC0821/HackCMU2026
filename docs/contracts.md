@@ -232,3 +232,27 @@ Connected routes (course instructor only, including the explicit open-demo teach
 The local launcher is AI-off by default; `--allow-ai` enables explicit, consented
 rubric requests. One provider request per job, no automatic paid retries. Jobs
 interrupted by a process restart remain marked running and are not resubmitted.
+## Staff solution crops and rubric authoring
+
+The staff standards view uses a PDF canvas on the left and question/rubric or
+reference-material tabs on the right. It uses the same PDF.js distribution as the
+student viewer. Questions may have an additive `solutionCrops` array (absent means
+none), persisted through the existing classroom workspace and local IndexedDB.
+Each crop is `{id, documentId, page, rect: [x, y, width, height], label}`. Page is
+one-based; rect coordinates are fractions of the displayed PDF page (including
+its intrinsic rotation), bounded to [0, 1], with positive width and height.
+Crops attach to the solution document's stable workspace ID, not its temporary
+blob URL. A question can have multiple regions across different pages.
+
+Draft crops are editable and explicitly saved with the draft; finalization copies
+them into the immutable standard version. Changing a solution PDF does not move
+old crops automatically: staff must review/reselect or explicitly remap them to
+the replacement PDF and its pages before finalization. Normalized coordinates
+handle zoom and different page dimensions; they do not infer content reflow.
+Student page mappings remain independent. Cropped solution previews are staff-only
+and shown beside the question during TA review, using that review's standard.
+The student assignment/feedback whitelist must never include crops or solutions.
+
+Implementation scope includes staff model/view/controller modules, their browser
+preview builder and tests, plus the classroom static-asset allowlist and privacy
+regression test. No new API endpoint or database migration is required.
