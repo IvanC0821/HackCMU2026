@@ -12,6 +12,30 @@ This guide describes the implemented MVP, including its limits. It is not a clai
 of a deployed service or a complete course-management product. Keep it in sync
 with code, [the API contract](docs/contracts.md), and [OpenAPI](backend/openapi.json).
 
+## Quick start: no manual setup in the page
+
+From `backend/`, install dependencies with `uv sync --frozen`, then run
+`uv run python -m scripts.debug_server`. Open `http://localhost:3000/__debug__/`
+and click **Run sample homework**. The launcher supplies fictional accounts,
+PDFs, rubric and example grading. The page shows the mistake and hint; a separate
+**Approve sample grade as teacher** button releases the example grade of 2/10.
+No token entry, JSON editing, worker or AI credentials are needed.
+
+This local-only launcher serves the console on port 3000 and an isolated API on
+port 8001. It uses temporary records/files and disables external AI and S3. It
+leaves the normal API/database on port 8000 alone. Stop a prior static server on
+3000 first, or choose `--port` and `--api-port`. Ctrl+C cleans up the temporary demo.
+The fixed sample illustrates the workflow; it does not claim to assess arbitrary
+homework or perform AI grading. Raw controls remain under **Advanced**.
+
+The launcher alone exposes same-origin `POST /__debug__/session` to supply demo
+credentials in memory. It checks loopback Host, matching Origin and JSON content,
+sets no-store, and is not part of the production API. Ordinary static hosting
+still supports the advanced console, but cannot create a guided sample session.
+PDF fixtures live under `frontend/output/pdf/`; `scripts.generate_samples` rebuilds
+them using the ReportLab development dependency. `npm run test:guided` checks this
+flow in a real browser, including cross-origin session rejection.
+
 ## 1. What exists
 
 | Capability | Current implementation |

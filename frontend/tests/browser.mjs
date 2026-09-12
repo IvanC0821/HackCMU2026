@@ -44,6 +44,7 @@ try {
   const pageErrors = [];
   page.on('pageerror', e => pageErrors.push(e.message));
   assert.equal((await page.goto(origin + '/__debug__/')).status(), 200);
+  await page.locator('#advanced > summary').click();
   await page.locator('#api-origin').fill(data.origin);
   await page.locator('#staff-token').fill(data.tokens.staff);
   await page.locator('#student-token').fill(data.tokens.student);

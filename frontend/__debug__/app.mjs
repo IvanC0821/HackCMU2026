@@ -1,3 +1,4 @@
+import {runSample, approveSample} from './sample.mjs';
 import {newKey, sendRequest, watchJob} from './api.mjs';
 import {captureContext, presets} from './presets.mjs';
 
@@ -5,7 +6,7 @@ const $ = id => document.getElementById(id);
 const contextIDs = ['course-id', 'student-id', 'assignment-id', 'answer-key-id', 'document-id',
   'rubric-id', 'submission-id', 'assessment-id', 'finding-id', 'region-id', 'job-id',
   'assessment-version', 'finding-version'];
-let controller, blobURL, sampleRubric;
+let controller, blobURL, sampleRubric, guidedSample;
 const context = () => Object.fromEntries(contextIDs.map(id => [id, $(id).value.trim()]));
 const token = () => $(`${$('identity').value}-token`).value;
 
@@ -36,8 +37,9 @@ function display(result, identity) {
 }
 
 function busy(value) {
-  for (const id of ['send', 'watch', 'load', 'preset']) $(id).disabled = value;
+  for (const id of ['send', 'watch', 'load', 'preset', 'sample-run']) $(id).disabled = value;
   $('stop').disabled = !value;
+  $('sample-approve').disabled = value || !guidedSample || guidedSample.approved;
 }
 
 async function run(action) {
@@ -93,6 +95,8 @@ $('clear').addEventListener('click', () => {
   $('output').textContent = $('request-info').textContent = '';
   clearBinary();
   $('status').textContent = 'Tokens and output cleared.';
+  guidedSample = undefined;
+  $('sample-approve').disabled = true;
 });
 $('request-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -109,3 +113,44 @@ $('watch').addEventListener('click', () => {
 });
 window.addEventListener('pagehide', () => { controller?.abort(); clearBinary(); $('staff-token').value = $('student-token').value = ''; });
 prepare();
+
+$('sample-run').addEventListener('click', () => {
+  guidedSample = undefined;
+  for (const id of ['sample-mistake', 'sample-hint', 'sample-score']) $(id).textContent = '';
+  run(async signal => {
+    try {
+      const sample = await runSample({signal,
+        onStep: text => { $('sample-status').textContent = text; },
+        onSession: seed => {
+          $('api-origin').value = seed.api_origin;
+          $('staff-token').value = seed.tokens.staff;
+          $('student-token').value = seed.tokens.student;
+          contextIDs.forEach(id => { $(id).value = id.endsWith('-version') ? '1' : ''; });
+        }, onResponse: display});
+      signal.throwIfAborted();
+      guidedSample = sample;
+      $('identity').value = 'student';
+      $('sample-status').textContent = 'Sample complete. Here is what the student sees:';
+      $('sample-mistake').textContent = 'Mistake: the proof assumes the result for k + 1 instead of proving it.';
+      $('sample-hint').textContent = 'Hint: ' + sample.hint;
+      $('sample-score').textContent = 'Grade: waiting for teacher approval.';
+    } catch (error) {
+      $('sample-status').textContent = 'Could not finish the sample: ' + error.message;
+      throw error;
+    }
+  });
+});
+$('sample-approve').addEventListener('click', () => {
+  if (!guidedSample || guidedSample.approved) return;
+  run(async signal => {
+    try {
+      const score = await approveSample(guidedSample, signal);
+      $('sample-score').textContent = `Grade: ${score}/10 - approved by the sample teacher.`;
+      $('sample-status').textContent = 'Teacher approval complete. The grade is now visible to the student.';
+    } catch (error) {
+      $('sample-status').textContent = 'Could not approve the sample: ' + error.message;
+      throw error;
+    }
+  });
+});
+window.addEventListener('pagehide', () => { guidedSample = undefined; });
