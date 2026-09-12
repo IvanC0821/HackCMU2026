@@ -1,3 +1,9 @@
+---
+date: 2026-09-12
+description: "Shared API contracts for reference ingestion, grading, approved hints and classroom review."
+tags: [contract, integration]
+---
+
 # Math homework API contract
 
 <!-- TODO: Replace the temporary Verity product name before launch. -->
@@ -286,3 +292,24 @@ Generation is a persistent `assignment_hints` job. Requests and worker completio
 checks; stale work cannot overwrite edits/approvals. Failure leaves editable templates and
 an inspectable failed job; regeneration is explicit. Classroom `--ai-hints` enables external
 AI for setup and starts a worker; the default remains a complete manual, no-external-AI path.
+## Whole-submission review and teaching support
+
+Ivan's September 12 correction assigns each TA an entire student's paper. The
+additive local-classroom routes, fields and validation rules are specified in
+[[submission-review-spec]]. Review ownership is per submitted attempt, not per
+question across students. Final grading, practice feedback and explicit help
+requests remain separate. Native assessment contracts are unchanged.
+
+### Local uploaded-paper assessment
+
+The classroom demo may assess a newly saved student attempt when launched with
+`--allow-ai` and a configured server-side OpenAI key. A single whole-paper request
+uses the rubric, attached references, student text and page images. Resubmitting
+the same attempt ID returns the existing attempt without another generation.
+The saved result retains model/token provenance and remains provisional until
+human review. Provider failure leaves the attempt explicitly failed/ungraded.
+Staff-only evidence and explanations are excluded from the student projection.
+`POST /classroom/attempts/{id}/assess` requests reassessment explicitly; students
+are limited to their own work, and reviewed attempts cannot be reassessed.
+This port carries the previously local integration into the current UI; it does
+not add PDF overlays to the TA's original-document iframe.

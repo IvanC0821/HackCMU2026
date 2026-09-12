@@ -51,7 +51,7 @@ try{
  await page.screenshot({path:'/private/tmp/verity-clean-overview.png',fullPage:true});
  await page.getByRole('navigation',{name:'Homework sections'}).getByRole('link',{name:'Rubric',exact:true}).click();
  const sections=page.getByRole('navigation',{name:'Homework sections'});
- assert.deepEqual(await sections.getByRole('link').allTextContents(),['Overview','Rubric','Grading']);
+ assert.deepEqual(await sections.getByRole('link').allTextContents(),['Overview','Rubric','Grading','Teaching']);
  assert.equal(await sections.getByRole('link',{name:'Rubric',exact:true}).getAttribute('aria-current'),'page');
  await page.getByRole('tab',{name:'Files & settings'}).click();
  await page.locator('.optional-materials > summary').click();
@@ -140,13 +140,39 @@ try{
  assert(!JSON.stringify(pub).includes('solutionCrops'));assert(!JSON.stringify(pub).includes('Final answer and method'));
  const form=new FormData();form.append('file',new Blob([await fixture()],{type:'application/pdf'}),'student.pdf');
  const uploaded=await api('/files',{method:'POST',body:form},'student');
- await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ const attempt=await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ await api(`/attempts/${attempt.id}/final`,{method:'POST'},'student');
  const after=await api('/workspace'),sid=after.submissions.find(s=>s.attempts.some(a=>a.pdf.remoteId===uploaded.remoteId)).id;
  await page.goto(`${origin}/teacher/#/homework/1/review/${sid}`);
  await page.reload();
  await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'TA sees published cropped answers');
  await page.screenshot({path:'/private/tmp/verity-rubric-ta.png',fullPage:true});
+ await page.getByRole('button',{name:'Start review',exact:true}).click();
+ await page.getByRole('button',{name:'Release review',exact:true}).waitFor();
+ assert.equal(await page.getByLabel('Show AI suggestions',{exact:true}).isChecked(),false);
+ await page.getByLabel('Show AI suggestions',{exact:true}).check();
+ const reviewQuestions=state.versions.at(-1).questions;
+ for(let index=0;index<reviewQuestions.length;index++){
+  const item=reviewQuestions[index];
+  await page.locator(`#grade-review-form[data-q="${item.id}"]`).waitFor();
+  for(const criterion of item.criteria){
+   const full=[...criterion.bands].sort((a,b)=>b.points-a.points)[0];
+   await page.locator(`select[name="band:${criterion.id}"]`).selectOption(full.id);
+   await page.locator(`textarea[name="reason:${criterion.id}"]`).fill('Browser test: checked the fixture answer.');
+  }
+  await page.getByLabel('I checked the full answer, including unflagged work',{exact:true}).check();
+  await page.getByRole('button',{name:index===reviewQuestions.length-1?'Complete review':'Save and next question',exact:true}).click();
+ }
+ await page.getByRole('button',{name:'Reopen review',exact:true}).waitFor();
+ const graded=await api('/workspace');
+ const reviewed=graded.submissions.find(s=>s.id===sid).attempts.find(a=>a.id===attempt.id);
+ assert(reviewed.reviewedAt,'Only completion of the entire paper finalizes the review');
+ assert(Object.values(reviewed.questions).every(q=>q.skimmed));
+ assert.equal((await api('/student',{},'student')).attempts[0].result.reviewed,true);
+ await page.reload();
+ await page.getByRole('button',{name:'Reopen review',exact:true}).waitFor();
+ await page.screenshot({path:'/private/tmp/verity-whole-paper-reviewed.png',fullPage:true});
  await page.goto(`${origin}/teacher/#/homework/1/standards`);
  await page.getByRole('tab',{name:'Files & settings'}).click();
  await page.locator('input[data-file="solution"]').setInputFiles({name:'shorter-solution.pdf',mimeType:'application/pdf',buffer:await fixture(1)});
