@@ -62,7 +62,7 @@ try{
  await page.getByRole('navigation',{name:'Homework sections'}).getByRole('link',{name:'Rubric',exact:true}).click();
  await page.locator('.section-tabs a[aria-current="page"]').filter({hasText:/^Rubric$/}).waitFor();
  const sections=page.getByRole('navigation',{name:'Homework sections'});
- assert.deepEqual(await sections.getByRole('link').allTextContents(),['Overview','Rubric','Grading']);
+ assert.deepEqual(await sections.getByRole('link').allTextContents(),['Overview','Rubric','Grading','Teaching']);
  assert.equal(await sections.getByRole('link',{name:'Rubric',exact:true}).getAttribute('aria-current'),'page');
  await page.getByRole('tab',{name:'Files & settings'}).click();
  await page.locator('.optional-materials > summary').click();
@@ -159,6 +159,31 @@ try{
  await page.locator('.solution-excerpt').nth(1).locator('canvas[data-ready="true"]').waitFor();
  assert.equal(await page.locator('.solution-excerpt').count(),2,'TA sees published cropped answers');
  await page.screenshot({path:'/private/tmp/verity-rubric-ta.png',fullPage:true});
+ await page.getByRole('button',{name:'Start review',exact:true}).click();
+ await page.getByRole('button',{name:'Release review',exact:true}).waitFor();
+ assert.equal(await page.getByLabel('Show AI suggestions',{exact:true}).isChecked(),false);
+ await page.getByLabel('Show AI suggestions',{exact:true}).check();
+ const reviewQuestions=state.versions.at(-1).questions;
+ for(let index=0;index<reviewQuestions.length;index++){
+  const item=reviewQuestions[index];
+  await page.locator(`#grade-review-form[data-q="${item.id}"]`).waitFor();
+  for(const criterion of item.criteria){
+   const full=[...criterion.bands].sort((a,b)=>b.points-a.points)[0];
+   await page.locator(`select[name="band:${criterion.id}"]`).selectOption(full.id);
+   await page.locator(`textarea[name="reason:${criterion.id}"]`).fill('Browser test: checked the fixture answer.');
+  }
+  await page.getByLabel('I checked the full answer, including unflagged work',{exact:true}).check();
+  await page.getByRole('button',{name:index===reviewQuestions.length-1?'Complete review':'Save and next question',exact:true}).click();
+ }
+ await page.getByRole('button',{name:'Reopen review',exact:true}).waitFor();
+ const graded=await api('/workspace');
+ const reviewed=graded.submissions.find(s=>s.id===sid).attempts.find(a=>a.id===attempt.id);
+ assert(reviewed.reviewedAt,'Only completion of the entire paper finalizes the review');
+ assert(Object.values(reviewed.questions).every(q=>q.skimmed));
+ assert.equal((await api('/student',{},'student')).attempts[0].result.reviewed,true);
+ await page.reload();
+ await page.getByRole('button',{name:'Reopen review',exact:true}).waitFor();
+ await page.screenshot({path:'/private/tmp/verity-whole-paper-reviewed.png',fullPage:true});
  await page.goto(`${origin}/teacher/#/homework/1/standards`);
  await page.getByRole('tab',{name:'Files & settings'}).click();
  await page.locator('input[data-file="solution"]').setInputFiles({name:'shorter-solution.pdf',mimeType:'application/pdf',buffer:await fixture(1)});

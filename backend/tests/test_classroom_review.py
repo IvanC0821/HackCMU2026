@@ -18,8 +18,13 @@ def test_combined_staff_modules_are_served(classroom):
     with TestClient(app) as client:
         assert client.get("/teacher/").status_code == 200
         for name in [
-            "app.mjs", "view.mjs", "grading.mjs", "grading-view.mjs",
-            "solution-crops.mjs", "rubric-pdf.mjs", "rubric-studio.mjs",
+            "app.mjs",
+            "view.mjs",
+            "grading.mjs",
+            "grading-view.mjs",
+            "solution-crops.mjs",
+            "rubric-pdf.mjs",
+            "rubric-studio.mjs",
         ]:
             response = client.get(f"/staff/{name}")
             assert response.status_code == 200, name
@@ -135,6 +140,12 @@ def test_one_ta_reviews_all_questions_and_preserves_progress(classroom):
     second = deepcopy(version["questions"][0])
     second["id"] = "q2"
     version["questions"].append(second)
+    state["draft"] = deepcopy(version["questions"])
+    state["revision"] += 1
+    state = call("PUT", "/classroom/workspace", json={"expectedRevision": expected, "state": state})
+    hints = call("GET", "/classroom/hint-bank")
+    call("POST", "/classroom/hint-bank:approve", json={"expected_version": hints["version"]})
+    expected = state["revision"]
     state["versions"].append(version)
     state["revision"] += 1
     call("PUT", "/classroom/workspace", json={"expectedRevision": expected, "state": state})

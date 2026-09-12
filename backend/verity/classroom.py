@@ -475,7 +475,7 @@ class AttemptCreate(BaseModel):
 
 
 @app.post("/classroom/attempts", status_code=201)
-def submit_attempt(body: AttemptCreate, db: DB, actor: Actor):
+def submit_attempt(body: AttemptCreate, background: BackgroundTasks, db: DB, actor: Actor):
     room = room_for(db, actor)
     if course_role(db, actor, room.course_id) != "student":
         raise HTTPException(403, "Student account required")
@@ -558,8 +558,34 @@ def submit_attempt(body: AttemptCreate, db: DB, actor: Actor):
             "detail": f"Revision {attempt['revision']}",
         }
     )
+    from .classroom_assess import schedule_assessment
+
+    if settings().external_ai_enabled and settings().openai_api_key:
+        attempt["assessmentSource"] = "pending"
     mutate(db, room, state, room.revision)
+    db.commit()
+    schedule_assessment(background, attempt["id"], db, "AI grader")
     return student_attempt(state, attempt)
+
+
+@app.post("/classroom/attempts/{attempt_id}/assess", status_code=202)
+def assess_attempt(attempt_id: str, background: BackgroundTasks, db: DB, actor: Actor):
+    from .classroom_assess import _find_attempt, schedule_assessment
+
+    room = room_for(db, actor)
+    state = deepcopy(room.state)
+    student, attempt = _find_attempt(state, attempt_id)
+    role = course_role(db, actor, room.course_id)
+    if role == "student" and student["id"] != actor.id:
+        raise HTTPException(403, "Not your work")
+    if attempt.get("reviewedAt"):
+        raise HTTPException(409, "Reviewed work is not re-assessed")
+    if not schedule_assessment(background, attempt_id, db, actor.name):
+        raise HTTPException(409, "AI grading is off. Restart the local server with --allow-ai and a configured key.")
+    attempt["assessmentSource"] = "pending"
+    mutate(db, room, state, room.revision)
+    db.commit()
+    return {"attemptId": attempt_id, "status": "pending"}
 
 
 @app.post("/classroom/attempts/{attempt_id}/final")
