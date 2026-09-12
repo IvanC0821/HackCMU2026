@@ -259,7 +259,7 @@ document.addEventListener('change', async event => {
     }
     await save();
     if (input.dataset.edit || input.id === 'instructions' || input.id === 'announcement-draft') {
-      const total = document.querySelector('[data-question-total]'); if (total) total.textContent = `${state.draft[ui.editQ].criteria.reduce((n,c) => n + c.max, 0)} pts`;
+      const total = document.querySelector('[data-question-total]'); if (total) total.textContent = `${state.draft[ui.editQ].criteria.reduce((n,c) => n + c.max, 0)}`;
       const publish = document.querySelector('[data-action="publish"]'); if (publish) publish.disabled = false;
       const status = document.querySelector('.setup-footer>span'); if (status) status.textContent = 'Draft changes not finalized';
       const copy = document.querySelector('[data-action="copy"]'); if (copy) copy.disabled = !state.announcement;

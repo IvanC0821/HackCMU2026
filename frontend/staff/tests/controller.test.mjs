@@ -20,7 +20,7 @@ async function screen() {
 }
 test('click-through covers setup, incomplete/corrected/alternative checks, final submit and TA skim',async()=>{
   const s=await screen();assert.match(s.root.innerHTML,/<h1>Homeworks/);
-  s.route('#/homework/1/standards');await s.click('sample-rubric');assert.match(s.root.innerHTML,/10 pts/);
+  s.route('#/homework/1/standards');await s.click('sample-rubric');assert.match(s.root.innerHTML,/data-question-total>10</);
   await s.click('publish');s.route('#/homework/1/practice');
   await s.click('check-case');assert.match(s.root.innerHTML,/Possible missing work/);assert.match(s.root.innerHTML,/<strong>8<small> \/ 10/);
   await s.click('case-variant',{variant:'corrected'});await s.click('check-case');assert.match(s.root.innerHTML,/<strong>10<small> \/ 10/);
