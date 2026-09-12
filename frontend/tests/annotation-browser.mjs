@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {fileURLToPath} from 'node:url';
@@ -58,16 +59,52 @@ try{
  await page.goto(origin+'/?example=graded');
  await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−4'}).waitFor();
  assert.match(await page.locator('.estimate').innerText(),/24\s*\/ 30/);
- assert.match(await page.locator('.estimate').innerText(),/Example grade/);
- assert.match(await page.locator('.feedback-card').innerText(),/Applied/);
+ assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
+ assert.match(await page.locator('.feedback-card').innerText(),/Estimated deduction/);
+ assert.doesNotMatch(await page.locator('body').innerText(), /\bTA\b|Reviewed score|Example grade|Applied deductions/);
+ assert.match(await page.locator('.estimate').innerText(), /Not official/);
+ assert.equal(await page.locator('.sidebar').count(),0,'Review leaves space for the PDF');
  assert.match(await page.locator('.applied-deduction').innerText(),/−4/);
  assert.match(await page.locator('.review-question[data-question="q2"]').innerText(),/6\s*\/ 10/);
  await page.screenshot({path:'/private/tmp/verity-graded-example.png',fullPage:true});
- await page.locator('.review-question[data-question="q3"]').click();
+ await page.getByRole('button',{name:'Next question',exact:true}).click();
  await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−2'}).waitFor();
  assert.match(await page.locator('.review-question[data-question="q3"]').innerText(),/8\s*\/ 10/);
+ await page.locator('.review-question[data-question="q1"]').click();
+ assert.equal(await page.locator('#page-select').inputValue(),'0');
+ assert.match(await page.locator('#feedback-body').innerText(),/No deductions suggested/);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-panel="feedback"]').click();
+ await page.locator('.review-question[data-question="q3"]').click();
+ await page.locator('[data-finding="graded-domain"]').click();
+ await page.locator('#pdf-canvas').waitFor({state:'visible'});
+ assert.equal(await page.locator('#page-select').inputValue(),'2','Deduction links navigate to the question page on phones');
+ await page.setViewportSize({width:1600,height:1000});
  await page.reload();await page.locator('.pdf-hint-box .hint-deduction').filter({hasText:'−4'}).waitFor();
  assert.equal(await page.evaluate(async()=>{const {readRevisions}=await import('./storage.mjs');return (await readRevisions()).filter(r=>r.id==='graded-example-v1').length;}),1,'Reopening the example reuses its saved revision');
+ // Exercise the connected student adapter with a reviewed server result too.
+ const fixture=await page.evaluate(async()=>{
+  const {assignment,gradedExampleResult}=await import('./model.mjs');
+  const result=structuredClone(gradedExampleResult);result.reviewed=true;result.source='professor-import';
+  return {revision:1,assignment,attempts:[{id:'connected-example',number:1,createdAt:new Date().toISOString(),fileName:'submission.pdf',documentId:'sample',mapping:{q1:[0],q2:[1],q3:[2]},assignment,result}]};
+ });
+ const index=await readFile(`${root}/frontend/student/index.html`,'utf8');
+ await page.route('**/student/',r=>r.fulfill({contentType:'text/html',body:index.replace('href="./styles.css"','href="/styles.css"').replace('src="./app.mjs"','src="/app.mjs"')}));
+ await page.route('**/connected/client.mjs',async r=>r.fulfill({contentType:'text/javascript',body:await readFile(`${root}/frontend/connected/client.mjs`,'utf8')}));
+ await page.route('**/classroom/**',async r=>{
+  const pathname=new URL(r.request().url()).pathname;
+  if(pathname==='/classroom/files/sample')return r.fulfill({contentType:'application/pdf',body:await readFile(`${root}/frontend/student/assets/sample-homework.pdf`)});
+  const data=pathname==='/classroom/demo'?{enabled:true,students:[]}:pathname==='/classroom/me'?{role:'student'}:fixture;
+  return r.fulfill({json:data});
+ });
+ await page.goto(origin+'/student/');
+ await page.locator('[data-action="latest"]').click();
+ await page.locator('.pdf-hint-box').waitFor();
+ assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
+ assert.match(await page.locator('.estimate').innerText(),/Not official/);
+ assert.doesNotMatch(await page.locator('body').innerText(),/\bTA\b|Professor|Reviewed score|Imported professor grade/);
+ assert.equal(await page.locator('.demo-switcher a[href="/teacher/"]').count(),0);
+ assert.equal(await page.locator('[data-action="final"]').count(),1,'Submission hand-in remains available');
  assert.deepEqual(errors,[]);
  console.log('Annotation browser passed: persistent hints, exact circles, connected lines, measured non-overlapping boxes, zoom, page filtering, unknown locations, and mobile scrolling.');
 }catch(error){if(page)await page.screenshot({path:'/private/tmp/verity-annotations-failure.png',fullPage:true});throw error;}

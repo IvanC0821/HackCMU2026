@@ -35,7 +35,7 @@ test('bottom-edge notes extend the annotation gutter without clipping or moving 
 });
 test('work and uncertain part anchors keep their location qualifiers',()=>{
  assert.match(locationLabel(finding),/Marked line/);assert.match(locationLabel({...finding,kind:'work'}),/Related work/);
- assert.match(locationLabel({...finding,x:undefined}),/needs TA review/);
+ assert.match(locationLabel({...finding,x:undefined}),/No precise location available/);
  for(const kind of ['work','part']){
   const f={...finding,kind};const html=calloutMarkup(layoutCallouts(layoutMarkers([f],2,600,800),600,800),null);
   assert.match(html,kind==='work'?/not an incorrect symbol/:/exact mistaken line has not been identified/);

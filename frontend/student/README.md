@@ -86,4 +86,12 @@ Run `npm run test:annotations --prefix frontend` from the repository root for th
 
 ## One-click graded example
 
-Choose **View graded example**, or open the standalone student viewer with `?example=graded`. The example immediately opens the existing three-page fictional PDF with its page assignments and applied deductions: Question 1 10/10, Question 2 6/10 (−4 circular reasoning), Question 3 8/10 (−2 missing domain), total 24/30. Yellow hint boxes and the feedback sidebar show each applied deduction. Positions are taken from the sample PDF text geometry. This fixture is saved locally once and never submits work or changes a course grade.
+Choose **View estimated example**, or open the standalone student viewer with `?example=graded`. The example immediately opens the existing three-page fictional PDF with its page assignments and applied deductions: Question 1 10/10, Question 2 6/10 (−4 circular reasoning), Question 3 8/10 (−2 missing domain), total 24/30. Yellow hint boxes and the feedback sidebar label each deduction as estimated. Positions are taken from the sample PDF text geometry. This fixture is saved locally once and never submits work or changes a course grade.
+
+## Student submission layout
+
+The review screen uses a wide PDF viewer and a single right sidebar. Every total and question score is presented as an **estimated grade**, including server results already marked reviewed. The selected question expands its **estimated deductions**; individual amounts appear only when supplied, and the question total is calculated from its score. Question prompts and assigned pages are available behind **Question & pages**. No grader identities or review-status labels appear.
+
+Zoom controls sit above the PDF (75–300%, with a fit-width reset). Question rows, deduction links, page controls, and **Next question** navigate the submission. On phones, switch between Submission and Questions & estimates; a located deduction opens its PDF page. Original download, upload revisions, history, and connected hand-in remain available. The student demo navigation omits the staff perspective link.
+
+Validation: 15 student unit tests and the annotation browser workflow cover persistent callouts, exact anchors, zoom, phone overflow, question/deduction navigation, example persistence, and estimate labels for both local examples and connected reviewed results.

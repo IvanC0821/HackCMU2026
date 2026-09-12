@@ -28,3 +28,97 @@
 .example-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.hint-deduction{margin-left:auto;color:#963e34;font-weight:700;white-space:nowrap}.applied-deduction{display:flex;align-items:center;gap:6px;margin-left:auto;color:#963e34;font-weight:700;font-size:.9375rem}.applied-deduction>span{display:grid;place-items:center;width:20px;height:20px;border:1px solid #83a59b;border-radius:1px;background:#e0eee8;color:#286251;font-size:12px}
 
 main[tabindex="-1"]:focus{outline:none}
+
+/* Submission workspace: one document and one question sidebar. */
+.review-shell{margin-left:0}
+.review-shell .topbar{height:76px;padding:0 24px;background:#fff}
+.review-shell .estimate-caption{display:block;border:0;background:none;color:var(--muted);padding:0;font-size:.75rem}
+.review-shell .button,.review-shell select,.review-shell .icon-button{border-radius:2px}
+.review-shell .review-grid{grid-template-columns:minmax(0,1fr) 380px;height:calc(100dvh - 188px);min-height:480px;border-top:0}
+.review-shell .pdf-section{height:auto;min-height:0;border-top:0;background:#f0f2f3}
+.review-shell .pdf-toolbar{height:58px;padding:6px 20px;background:#fafbfb}
+.review-shell .pdf-name{min-width:0;max-width:none;text-overflow:ellipsis;display:block;line-height:24px}
+.review-shell .pdf-name svg{vertical-align:middle;margin-right:7px}
+.review-shell .zoom-controls{flex-shrink:0;border:1px solid #c9d3d6;border-radius:2px;background:white}
+.review-shell .zoom-controls .icon-button{width:42px;height:38px;color:var(--teal)}
+.review-shell .zoom-reset{height:38px;min-width:60px;border-left:1px solid var(--line);border-right:1px solid var(--line);font-size:.8125rem;color:var(--ink)}
+.review-shell .pdf-bottom{height:54px;padding:0 16px;background:#fafbfb}
+.review-shell .download-original{font-size:.8125rem}
+.review-shell .feedback-panel{display:block!important;background:#f7f8f9;border-left:1px solid var(--line);min-height:0;overflow:auto}
+.review-shell .student-sidebar-heading{padding:22px 24px 16px}
+.student-sidebar-heading h1{font-size:1.05rem;letter-spacing:0;font-weight:700}
+.student-sidebar-heading>span{display:block;color:var(--muted);font-size:.75rem;margin-top:6px}
+.student-question{border-bottom:1px solid #dce2e5}
+.student-question.selected{background:#fff}
+.review-shell .review-question{border:0;border-left:3px solid transparent;border-radius:0;margin:0;padding:19px 24px 17px 21px;background:transparent}
+.review-shell .review-question:hover{background:#eef2f3}
+.review-shell .review-question.selected{border-left-color:var(--teal);background:transparent}
+.review-shell .review-question-top{font-size:.875rem;flex-wrap:nowrap;align-items:center}
+.review-shell .review-question-top>span{font-size:1rem;color:var(--ink);white-space:nowrap}
+.review-shell .review-question-top small{font-size:.8125rem}
+.review-shell .question-topic{display:flex;align-items:center;justify-content:space-between;font-size:.9375rem;color:var(--teal);line-height:1.5;margin-top:6px}
+.review-shell .question-topic svg{width:15px;height:15px;opacity:.65}
+.question-prompt{margin:0 24px 18px;font-size:.8125rem;color:var(--muted)}
+.question-prompt summary{cursor:pointer;padding:4px 0;min-height:28px}
+.question-prompt p{color:var(--ink);margin-top:10px}
+.question-prompt .text-button{font-size:.8125rem;padding-bottom:0}
+.review-shell #feedback-body{padding:0 24px 22px}
+.deduction-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;border-top:1px solid var(--line);margin-bottom:8px}
+.deduction-heading h2{font-size:.75rem;font-weight:400;color:var(--muted)}
+.deduction-heading>span{font-size:.875rem;font-weight:700;color:#a5443e}
+.review-shell .feedback-card{margin:0;padding:14px 10px;border:1px solid transparent;border-radius:2px;background:none;max-width:none}
+.review-shell .feedback-card.selected{background:#f3f6f6;border-color:#cbd7da}
+.review-shell .feedback-card:hover{background:#edf2f2;border-color:#cbd7da}
+.review-shell .feedback-card-top{gap:8px;flex-wrap:nowrap;align-items:flex-start}
+.review-shell .feedback-card-top strong{color:var(--ink);font-size:.875rem;line-height:22px;font-weight:400}
+.deduction-square{display:grid;place-items:center;flex-shrink:0;width:22px;height:22px;border:1px solid #b4c3c8;background:#e8eef0;color:var(--teal);font-size:.75rem;font-weight:700}
+.review-shell .applied-deduction{margin:0;line-height:22px;color:#a5443e;font-size:.9375rem;white-space:nowrap}
+.review-shell .applied-deduction>.sr-only{display:initial;width:1px;height:1px}
+.review-shell .feedback-message{color:#506067;font-size:.8125rem;line-height:1.6;margin:8px 0 0 30px}
+.review-shell .feedback-location{margin:10px 0 0 30px;color:var(--teal);font-size:.75rem}
+.no-deductions{font-size:.8125rem;color:var(--muted);padding:12px 0}
+.student-sidebar-note{padding:18px 24px;font-size:.75rem;color:var(--muted);line-height:1.6}
+.submission-actions{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 24px;border-bottom:1px solid var(--line)}
+.current-question{font-size:.9375rem}
+.submission-tools{display:flex;align-items:center;gap:10px}
+.submission-tools select{font-size:.8125rem;max-width:155px}
+.review-shell .review-heading-actions{gap:10px}
+.review-shell .review-heading-actions .button{font-size:.875rem}
+.review-shell .review-footer{min-height:40px;padding:8px 24px;font-size:.75rem}
+.review-shell .mobile-switch{display:none}
+.hint-deduction{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px;color:#29343b}
+.hint-deduction>span{font-size:10px;font-weight:400;color:#526069}
+@media(max-width:1100px){
+ .review-shell .review-grid{grid-template-columns:minmax(0,1fr) 330px}
+ .submission-actions{padding:12px 16px}.submission-tools{gap:7px}.submission-tools .button{padding:10px;font-size:.8125rem}
+ .review-shell .review-heading-actions .button{font-size:.8125rem}.current-question{max-width:190px}
+}
+@media(max-width:760px){
+ .review-shell .topbar{padding:0 16px;height:78px}.review-shell .breadcrumbs{gap:6px;flex-wrap:wrap;max-width:48%}
+ .review-shell .breadcrumbs button{display:flex;font-size:.75rem;min-height:25px;padding:0}
+ .review-shell .breadcrumbs>span{width:100%;font-size:.8125rem}.review-shell .breadcrumbs>svg{display:none}
+ .review-shell .estimate{gap:5px;flex-direction:column;align-items:flex-end}.review-shell .estimate strong{font-size:1.5rem}
+ .review-shell .review-grid{grid-template-columns:minmax(0,1fr);height:auto;min-height:0}
+ .review-shell .mobile-switch{display:flex;height:45px;padding:0 16px;gap:24px}
+ .review-shell .pdf-section{height:70dvh;min-height:440px}
+ .review-shell .review-grid[data-mobile-panel=document] .feedback-panel{display:none!important}
+ .review-shell .review-grid[data-mobile-panel=feedback] .pdf-section{display:none}
+ .review-shell .feedback-panel{border-left:0;min-height:440px}
+ .review-shell .pdf-toolbar{padding:6px 12px;gap:12px}.review-shell .pdf-name{font-size:.6875rem}
+ .review-shell .pdf-bottom{padding:0 8px}.review-shell .download-original{font-size:.75rem;gap:5px}
+ .review-shell .pdf-bottom select{min-width:98px;font-size:.75rem}
+ .review-shell .pdf-bottom .icon-button{width:32px}
+ .submission-actions{flex-direction:column;align-items:stretch;gap:12px;padding:14px 16px}
+ .current-question{max-width:none;font-size:.875rem}.submission-tools{display:flex;flex-wrap:wrap;gap:8px}
+ .submission-tools select{max-width:none;flex:1;min-width:130px}
+ .submission-tools>.button:last-child{margin-left:auto}.review-shell .review-footer{padding:10px 16px;gap:6px;flex-direction:column;align-items:flex-start}
+}
+
+.open-demo .review-shell .review-grid{height:calc(100dvh - 260px)}
+body:has(.review-shell) .demo-switcher>div{border-radius:2px}
+body:has(.review-shell) .demo-switcher select,body:has(.review-shell) .demo-switcher a{border-radius:2px}
+body:has(.review-shell):not(.open-demo) .connected-signout{border-radius:2px}
+body:has(.review-shell):not(.open-demo):has(.connected-signout) .review-footer{padding-left:108px}
+@media(max-width:760px){.open-demo .review-shell .review-grid{height:auto}}
+
+.hint-heading{flex-wrap:wrap}.hint-heading strong{flex:1}.hint-deduction{flex-basis:100%;margin-left:28px;flex-direction:row;justify-content:space-between;align-items:center}.hint-deduction>span{font-size:11px}
