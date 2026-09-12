@@ -1,0 +1,46 @@
+# Local development only. TODO: Replace temporary Verity naming before launch.
+x-backend: &backend
+  build: .
+  env_file: ../.env
+  environment:
+    DATABASE_URL: postgresql+psycopg://verity:verity_local_only@db:5432/verity
+    STORAGE_DIR: /app/data/documents
+  volumes:
+    - documents:/app/data
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: verity
+      POSTGRES_USER: verity
+      POSTGRES_PASSWORD: verity_local_only
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verity"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    <<: *backend
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    <<: *backend
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    <<: *backend
+    command: ["python", "-m", "verity.jobs"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  documents:
+  postgres:

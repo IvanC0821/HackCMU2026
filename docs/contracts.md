@@ -121,3 +121,14 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 
 Examples: `backend/examples/rubric.json`, executable `backend/scripts/demo.py`.
 Generated `backend/openapi.json` is the frontend schema reference.
+
+## Additional MVP details
+
+- `POST /assessments/{id}/math-checks`: staff submits `lhs`/`rhs`; returns a bounded
+  polynomial identity check. Does not verify an assessment or change points.
+- Feedback POST also requires `Idempotency-Key`; an uncached generated hint returns
+  a job, whose `result_id` is an issued-feedback record. GET submission feedback
+  retrieves it. Manual and cached responses return the issued record directly.
+- AI-generated drafts are edited by posting a revised spec as a new draft version.
+- Rubrics, source materials, and assignment policy are immutable in the MVP. New
+  policies use a new assignment; new rubrics can be published on the same assignment.
