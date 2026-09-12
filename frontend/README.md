@@ -1,5 +1,20 @@
 # Teaching workspace
 
+The root page now runs the **single-case staff MVP**. From `frontend/`, run
+`npm run start:staff` and open http://127.0.0.1:3003. Setup, unlimited revisions,
+mandatory TA skim, disputes, and first/latest analytics are implemented locally.
+See `staff/README.md` for the current workflow and boundaries, `staff/DEMO.md`
+for the product-only rehearsal, and `staff/QA.md` for verification gaps.
+
+The checker evaluates entered row operations; it does not read handwriting or
+call GPT. Optional live AI rubric drafting uses the existing backend but has only
+been mock-tested. The independent student frontend is unchanged.
+
+## Historical instructor prototype
+
+The following describes the preserved earlier instructor modules, not the current
+root page. Its scripted grades and refresh-only state are superseded by the staff MVP.
+
 The root page now starts with **Homeworks**, with **Homework 1** as the initial
 assignment. Open it to switch between **Graded homeworks** and **Grading standards**.
 The aesthetic stays minimal; the flow is no longer a Gradescope replica.
