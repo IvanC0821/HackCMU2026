@@ -50,7 +50,7 @@ class FeedbackPolicy(Strict):
 class AssignmentIn(Strict):
     title: Short
     questions: list[Question] = Field(min_length=1, max_length=30)
-    material_document_ids: list[str] = Field(default_factory=list, max_length=10)
+    material_document_ids: list[str] = Field(default_factory=list, max_length=30)
     external_ai_allowed: bool = False
     ocr_enabled: bool = False
     feedback_policy: FeedbackPolicy = Field(default_factory=FeedbackPolicy)

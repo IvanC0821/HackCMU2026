@@ -85,3 +85,23 @@ fabricated from page assignments.
 Run loopback-only via `backend/run_classroom.py`; production SSO, TLS, deployment and
 integration into the native assessment pipeline remain separate work. Source publication
 does not publish the private database, PDFs, or provisioned access codes.
+
+## Rubric drafting
+
+The shared-contract section “Readable rubric drafts” defines instructor-only
+`/classroom/rubric-drafts` POST/GET. Durable draft jobs are isolated from grading
+jobs and the mutable workspace. The model sees only the saved reference list;
+no student roster, submission history, hidden keys or recorded assessments.
+Text and page images preserve layout/graphs, with exact document/page identities.
+An immutable input snapshot plus revision-checked import prevents overwriting a
+concurrent staff edit or student upload. A unique active-course slot and request ID
+protect against duplicate paid jobs. Interrupted jobs expire after 11 minutes and
+need a new explicit request; they are never automatically retried.
+
+The configured model is unchanged. Rubric generation uses Structured Outputs,
+30,000 maximum output tokens, a 300-second request timeout and zero provider retries;
+other provider paths retain their original settings. Shape is not a guarantee of
+grading correctness. See [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Existing `RubricSpec` fields hold readable requirements, bands, sources, pattern
+definitions/exclusions and proposed policies. Full worked-solution hint ladders are
+excluded from this generation request. Staff must inspect the draft before publishing.

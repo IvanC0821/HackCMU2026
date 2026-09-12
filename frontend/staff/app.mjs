@@ -3,6 +3,7 @@ import {renderWorkspace, routeFrom, escapeHTML} from './view.mjs';
 import {openStore} from './storage.mjs';
 import {connected, openRemoteStore, addSignOut} from '../connected/client.mjs';
 import {apiRequest, generateApiDraft} from './api.mjs';
+import {generateConnectedDraft} from '../connected/rubrics.mjs';
 import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, appealCase} from './case.mjs';
 
 let state = newWorkspace(), store = null, persistedRevision = 0, saveChain = Promise.resolve(), blocked = false, controller;
@@ -173,7 +174,7 @@ document.addEventListener('change', async event => {
     }
     if (input.dataset.file) {
       const files = [...input.files]; if (!files.length) return;
-      if (state.documents.examples.length + (input.dataset.file === 'examples' ? files.length : 0) > 5) throw new Error('Use up to five past graded PDFs for this MVP.');
+      if (input.dataset.file === 'examples' && state.documents.examples.length + files.length > 28) throw new Error('Use up to 28 graded examples or guideline PDFs, plus the assignment and solution.');
       for (const file of files) await checkPdf(file);
       const docs = files.map(file => ({id: crypto.randomUUID(), name: file.name, blob: file, sample: false}));
       if (input.dataset.file === 'examples') state.documents.examples.push(...docs); else state.documents[input.dataset.file] = docs[0];
@@ -209,16 +210,20 @@ document.addEventListener('submit', async event => {
       if (!ui.consent) throw new Error('Confirm the reference-upload and external-AI permission first.');
       if (ui.busy) return;
       ui.busy = true; ui.apiOpen = true; controller = new AbortController();
+      await saveChain;
       const snapshot = structuredClone(state); render();
       try {
-        const result = await generateApiDraft({origin: ui.apiOrigin, courseId: ui.apiCourse, token: ui.apiToken}, snapshot, progress => {
+        const progress = progress => {
           ui.apiProgress = progress; const el = document.querySelector('.api-progress'); if (el) el.textContent = progress;
-        }, controller.signal);
+        };
+        const result = connected ? await generateConnectedDraft(snapshot, progress, controller.signal)
+          : await generateApiDraft({origin: ui.apiOrigin, courseId: ui.apiCourse, token: ui.apiToken}, snapshot, progress, controller.signal);
         if (state.revision !== snapshot.revision) throw new Error('The local draft changed while the API was working. Its result was not applied.');
         state.draft = result.questions; state.source = 'api'; state.dirty = true;
         state.remoteDraft = {assignmentId: result.assignmentId, rubricId: result.rubricId, spec: result.spec};
+        if (result.spec.standards?.length) state.instructions += '\n\nAI-proposed grading policies (review before finalizing):\n' + result.spec.standards.join('\n\n');
         record(state, 'AI draft imported', `API assignment ${result.assignmentId}; rubric ${result.rubricId}. Not published remotely.`);
-        ui.message = 'AI draft imported. Review the point bands and page mappings before finalizing locally.';
+        ui.message = 'AI draft ready for review. Check each requirement, deduction, source page, and proposed grading policy before finalizing. Published grades are unchanged.';
       } finally { ui.busy = false; }
     }
     await save();

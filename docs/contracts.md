@@ -206,3 +206,29 @@ existing evidence is rewritten. Failed jobs roll back OCR and can be explicitly
 retried (which can incur another charge); there are no automatic HTTP retries.
 Safe job errors include `glm_ocr_not_configured`, `ocr_image_too_large`,
 `ocr_invalid_response`, `ocr_invalid_geometry`, and `ocr_request_failed`.
+
+## Readable rubric drafts (connected classroom, 2026-09-12)
+
+`RubricSpec` keeps its existing shape. Requirements and band descriptions are
+complete TA-facing explanations, not abbreviated labels. Criteria retain source
+pages and concept IDs; pattern definitions and exclusions remain staff-only.
+Generation separates required presentation/graphs from optional style, distinguishes
+minor slips from conceptual errors, and explains carried-through-error treatment.
+Hints are prepared separately; drafting does not generate worked-solution ladders.
+Native assignments accept up to 30 reference PDFs. Drafting accepts at most 160
+reference pages / 40 MiB of rendered images and fails before a model call if exceeded.
+All included pages have text, an image, and explicit document/page identity.
+
+Connected routes (course instructor only, including the explicit open-demo teacher):
+- `POST /classroom/rubric-drafts`: `{expectedRevision, consent: true, requestId}`.
+  Requires server `EXTERNAL_AI_ENABLED` and configured credentials. Uses only saved
+  blank/solution/past-example references, never student attempts or hidden keys.
+  Returns a persistent `{id, status, revision, spec, coverage, error}` draft job (202).
+  Reusing a request ID returns the same job; only one running job per course.
+- `GET /classroom/rubric-drafts/{id}`: same staff-only shape; polling never calls AI.
+  A completed spec is imported only if the workspace revision still matches. Existing
+  published standards, submissions, and grades are unchanged. Finalizing is separate.
+
+The local launcher is AI-off by default; `--allow-ai` enables explicit, consented
+rubric requests. One provider request per job, no automatic paid retries. Jobs
+interrupted by a process restart remain marked running and are not resubmitted.

@@ -58,6 +58,34 @@ Optional private mode: `uv run python run_classroom.py --private` restores acces
 sign-in. Only that mode uses the locally generated 72-hour codes in
 `backend/data/classroom/access-codes.json`; never commit or share that file.
 
+### Generate a readable rubric
+
+With a server-side `OPENAI_API_KEY`, start `uv run python run_classroom.py --allow-ai`.
+Open **TA / Professor → Grading standards → Generate a rubric from your PDFs**.
+Confirm the per-request paid-AI consent, then **Generate AI draft**. The normal
+launcher remains AI-off; no model calls occur just by opening the site.
+
+The generator uses the saved assignment, professor solution, guidelines and graded
+examples. Every included PDF page supplies both text and an image. Limits: 30 PDFs,
+160 pages, 40 MiB rendered images. The current 14 references / 107 pages passed the
+local preflight; hidden keys and new student attempts are not inputs.
+
+Drafts explain expected work, observable scoring conditions, valid alternatives,
+required formatting/graphs and minor-error treatment. Source pages and error-check
+exceptions stay visible to staff. Requirements and scoring explanations use multiline
+fields. Generated policies appear in General grading instructions for review.
+
+Generation is asynchronous and can take several minutes. Stop waiting does not
+cancel the provider request; selecting Generate AI draft again at the same workspace
+revision resumes that job. There are no automatic paid retries. No rubric is published,
+student graded, or previous grade changed until separate explicit staff actions.
+Concurrent workspace edits prevent stale draft import. This is rubric generation,
+not automatic grading of new browser uploads.
+
+Local tests use a mocked provider; live quality of this new prompt is **not yet
+verified**. A fresh paid test requires explicit approval. Examples provide reference
+context; they do not retrain the underlying model.
+
 ### Try another connected assignment
 
 1. Teacher: open Homework 1 → Grading standards → Use sample materials →
@@ -85,7 +113,7 @@ fixture score or invented error coordinates to real work. The standalone grading
 API remains available separately. This is a loopback development demo, not a
 production deployment or university SSO integration.
 
-Validation: 88 backend tests passed (2 paid-service tests skipped), 66 staff/shared
+Validation: 102 backend tests passed (2 paid-service tests skipped), 77 staff/shared
 frontend tests passed, and 14 student tests passed. The new integration checks
 cover privacy, stale writes, immutable uploads, page maps, revisions and chart
 changes from 80% first attempt to 100% latest attempt without counting pending as zero.

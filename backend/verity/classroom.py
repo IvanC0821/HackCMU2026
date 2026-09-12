@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +18,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import pdf, storage
 from .auth import bearer, course_role, current_user, require_staff
+from .classroom_rubrics import DraftRequest, create_draft, get_draft
 from .config import settings
 from .db import Base, get_db
 from .models import Document, User
@@ -231,6 +232,18 @@ def workspace(db: DB, actor: Actor):
     room = room_for(db, actor)
     require_staff(db, actor, room.course_id)
     return room.state
+
+
+@app.post("/classroom/rubric-drafts", status_code=202)
+def generate_classroom_rubric(
+    body: DraftRequest, background: BackgroundTasks, db: DB, actor: Actor
+):
+    return create_draft(db, actor, body, background)
+
+
+@app.get("/classroom/rubric-drafts/{draft_id}")
+def classroom_rubric(draft_id: str, db: DB, actor: Actor):
+    return get_draft(db, actor, draft_id)
 
 
 class WorkspaceSave(BaseModel):

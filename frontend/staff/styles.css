@@ -25,3 +25,15 @@
 .reason-math-block{display:block;margin:8px 0;text-align:left}
 .reason-math-block math{margin:0}
 .reason-math-fallback{white-space:pre-wrap;overflow-wrap:anywhere}
+.criterion-title>label:first-child{align-self:stretch}
+.criterion-title textarea,.outcome-row>textarea{font-size:.9375rem;line-height:1.6;resize:vertical;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.outcome-row{align-items:flex-start}
+.outcome-row>textarea{flex:1;min-height:100px}
+.outcome-row>label{padding-top:8px}
+.rubric-notes{margin-top:16px;font-size:.9375rem;line-height:1.6}
+.rubric-notes summary{cursor:pointer;color:var(--teal);padding:8px 0;font-weight:700}
+.rubric-notes p{margin:10px 0;max-width:72ch;white-space:pre-wrap;overflow-wrap:anywhere}
+.rubric-sources{font-size:.875rem;line-height:1.6;color:var(--muted);margin-top:16px;overflow-wrap:anywhere}
+.connected-drafting{padding-bottom:20px;margin:0 0 28px;border-bottom:1px solid var(--line);border-top:0}
+.connected-drafting .check-label{align-items:flex-start;font-size:.9375rem;line-height:1.6}
+@media(max-width:540px){.outcome-row{display:grid;grid-template-columns:minmax(0,1fr)}.outcome-row>label{justify-self:end;padding-top:0}.criterion-title>label:first-child{flex-basis:100%}}

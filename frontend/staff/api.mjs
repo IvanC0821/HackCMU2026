@@ -20,11 +20,16 @@ export async function apiRequest(config, path, {body, file, key, signal, method 
   if (!response.ok) throw new Error(`API ${response.status}: ${typeof data.detail === 'string' ? data.detail : 'Request rejected. Check staff permissions and the server configuration.'}`);
   return data;
 }
-export function mapDraft(spec, questions) {
+export function mapDraft(spec, questions, documents = []) {
   if (!Array.isArray(spec?.criteria) || !spec.criteria.length) throw new Error('The API draft did not include criteria.');
   if (spec.criteria.some(c => !questions.some(q => q.id === c.question_id))) throw new Error('The draft refers to an unknown question. Nothing was imported.');
-  return questions.map(q => ({...structuredClone(q), criteria: spec.criteria.filter(c => c.question_id === q.id).map(c => ({id: c.id, label: c.requirement, max: Number(c.max_points), category: 'AI draft',
-    bands: c.bands.map(b => ({id: b.id, label: b.description, points: Number(b.points)}))}))}));
+  return questions.map(q => ({...structuredClone(q), criteria: spec.criteria.filter(c => c.question_id === q.id).map(c => {
+    const patterns = structuredClone((spec.patterns || []).filter(p => p.criterion_ids.includes(c.id)));
+    return {id: c.id, label: c.requirement, max: Number(c.max_points), category: [...new Set(patterns.map(p => p.category))].join(', ') || 'AI draft',
+      conceptIds: structuredClone(c.concept_ids || []), patterns,
+      sourceRefs: (c.source_refs || []).map(ref => ({...ref, name: documents.find(d => (d.remoteId || d.id) === ref.document_id)?.name || 'Reference PDF'})),
+      bands: c.bands.map(b => ({id: b.id, label: b.description, points: Number(b.points)}))};
+  })}));
 }
 export async function generateApiDraft(config, workspace, onProgress = () => {}, signal, fetcher = fetch, pause = ms => new Promise(r => setTimeout(r, ms))) {
   if (!config.courseId?.trim()) throw new Error('Enter the existing API course ID.');
@@ -51,7 +56,7 @@ export async function generateApiDraft(config, workspace, onProgress = () => {},
     signal?.throwIfAborted();
     if (job.status === 'succeeded') {
       const result = await request(`/api/v1/rubric-versions/${encodeURIComponent(job.result_id)}`);
-      return {questions: mapDraft(result.spec, workspace.draft), assignmentId: assignment.id, rubricId: result.id, spec: result.spec};
+      return {questions: mapDraft(result.spec, workspace.draft, docs.map((d, i) => ({...d, remoteId: docIds[i]}))), assignmentId: assignment.id, rubricId: result.id, spec: result.spec};
     }
     if (job.status === 'failed') throw new Error(`Draft failed: ${job.error_code || 'provider unavailable'}. Server assignment ${assignment.id} remains saved.`);
     await pause(2000); signal?.throwIfAborted();

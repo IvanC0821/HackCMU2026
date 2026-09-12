@@ -1,4 +1,4 @@
-"""Provision and run a loopback-only connected demo. No external model calls."""
+"""Provision a loopback-only classroom. AI requests require --allow-ai and UI consent."""
 
 import argparse
 import json
@@ -78,9 +78,16 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=3004)
     parser.add_argument("--provision-only", action="store_true")
     parser.add_argument(
+        "--allow-ai",
+        action="store_true",
+        help="Enable explicitly consented rubric generation (paid API)",
+    )
+    parser.add_argument(
         "--private", action="store_true", help="Require access codes instead of open demo switching"
     )
     args = parser.parse_args()
+    if args.allow_ai:
+        os.environ["EXTERNAL_AI_ENABLED"] = "true"
     access = provision(private=args.private)
     if args.private:
         print(f"Access codes (private, 72 hours): {access}")
