@@ -1,0 +1,45 @@
+{
+  "dataset": "fictional-judge-demo-v1",
+  "files": [
+    {
+      "file": "fictional-student.pdf",
+      "source": "04_ungraded_new_submissions/s08_Hiro_Tanaka/submission.pdf",
+      "label": "Ungraded student homework",
+      "name": "Hiro Tanaka",
+      "pages": 6,
+      "sha256": "45b2367562618c4053d8452f59e556de7822eb6ad861a39dea93541595e92638"
+    },
+    {
+      "file": "fictional-professor.pdf",
+      "source": "02_professor_answer_key/Homework 1 Solutions.pdf",
+      "label": "Professor solution",
+      "name": "Fictional professor",
+      "pages": 5,
+      "sha256": "ff4d3ea9fd557e154163e8ab9902209e48f05946ee04c9590f045b94c0f31fb4"
+    },
+    {
+      "file": "fictional-graded-farid.pdf",
+      "source": "03_graded_past_submissions/s06_Farid_Haddad/graded_submission.pdf",
+      "label": "Past graded work 1",
+      "name": "Farid Haddad",
+      "pages": 8,
+      "sha256": "96145fe58e6b2993df8b81494f9eb5d54f27255eb37ff7b150937d265cb55f67"
+    },
+    {
+      "file": "fictional-graded-victoria.pdf",
+      "source": "03_graded_past_submissions/s22_Victoria_Lam/graded_submission.pdf",
+      "label": "Past graded work 2",
+      "name": "Victoria Lam",
+      "pages": 9,
+      "sha256": "2d016a6fd54dd48672aa3f7d1d68d9e8ed63b2be14b177e87393e7d8768176e6"
+    },
+    {
+      "file": "fictional-graded-yusuf.pdf",
+      "source": "03_graded_past_submissions/s25_Yusuf_Demir/graded_submission.pdf",
+      "label": "Past graded work 3",
+      "name": "Yusuf Demir",
+      "pages": 7,
+      "sha256": "b50b30ccd652dc669451133a1cabc4a10313c4340fb65e663bb5278bfc943fc1"
+    }
+  ]
+}

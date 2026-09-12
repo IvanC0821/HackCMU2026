@@ -111,6 +111,8 @@ export function addSignOut() {
     const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
     nav.innerHTML = `<div id="demo-controls" class="demo-controls"><div class="demo-context"><span>Demo</span></div><div class="demo-perspectives" aria-label="Switch view"><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA</a></div></div><button class="demo-toggle" type="button" aria-controls="demo-controls" aria-expanded="true" aria-label="Collapse demo bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>`;
     document.body.prepend(nav);
+    const examples = document.createElement('a'); examples.href = '/examples/'; examples.textContent = 'Example files'; examples.style.cssText = 'color:inherit;text-decoration:underline;white-space:nowrap';
+    nav.querySelector('.demo-context').append(examples);
     const toggle = nav.querySelector('.demo-toggle'), controls = nav.querySelector('.demo-controls');
     toggle.addEventListener('click', () => {
       const expanded = toggle.getAttribute('aria-expanded') !== 'true';

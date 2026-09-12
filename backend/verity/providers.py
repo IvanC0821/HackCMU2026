@@ -7,6 +7,7 @@ import struct
 import httpx
 from openai import OpenAI
 
+from .ai_budget import demo_retries, reserve_ai_call
 from .config import settings
 from .models import Document, Region
 from .pdf import render, valid_bbox
@@ -49,7 +50,8 @@ def structured(
             }
         )
     try:
-        with OpenAI(api_key=cfg.openai_api_key, timeout=timeout, max_retries=max_retries) as client:
+        reserve_ai_call()
+        with OpenAI(api_key=cfg.openai_api_key, timeout=timeout, max_retries=demo_retries(max_retries)) as client:
             response = client.responses.parse(
                 model=cfg.openai_model,
                 reasoning={"effort": cfg.openai_reasoning_effort},
