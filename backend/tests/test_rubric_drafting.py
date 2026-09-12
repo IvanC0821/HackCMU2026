@@ -247,3 +247,23 @@ def test_workspace_can_change_while_model_works_without_overwrite(classroom, mon
     assert fresh["announcement"] == "Another staff edit"
     assert fresh["versions"] == state["versions"]
     assert fresh["submissions"] == state["submissions"]
+
+
+def test_decimal_points_have_numeric_provider_schema_and_keep_exact_validation():
+    from decimal import Decimal
+
+    import pytest
+    from openai.lib._pydantic import to_strict_json_schema
+    from pydantic import TypeAdapter, ValidationError
+
+    from verity.schemas import Points
+
+    schema = to_strict_json_schema(RubricSpec)
+    points = schema["$defs"]["Band"]["properties"]["points"]
+    assert points["type"] == "number"
+    assert "anyOf" not in points
+    adapter = TypeAdapter(Points)
+    assert adapter.validate_python(0.25) == Decimal("0.25")
+    for invalid in (-0.25, 10001, 0.251):
+        with pytest.raises(ValidationError):
+            adapter.validate_python(invalid)

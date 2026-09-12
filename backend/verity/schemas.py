@@ -1,12 +1,16 @@
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, WithJsonSchema, model_validator
 
 Identifier = Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")]
 Short = Annotated[str, Field(min_length=1, max_length=160)]
 Text = Annotated[str, Field(min_length=1, max_length=10000)]
-Points = Annotated[Decimal, Field(ge=0, le=10000, max_digits=8, decimal_places=2)]
+Points = Annotated[
+    Decimal,
+    Field(ge=0, le=10000, max_digits=8, decimal_places=2),
+    WithJsonSchema({"type": "number", "minimum": 0, "maximum": 10000}),
+]
 Category = Literal["conceptual", "procedural", "execution", "notation", "incomplete", "uncertain"]
 
 

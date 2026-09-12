@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import math
 import struct
 
@@ -58,12 +59,25 @@ def structured(
                 store=False,
                 max_output_tokens=max_output_tokens,
             )
+        usage = getattr(response, "usage", None)
+        if usage:
+            logging.getLogger(__name__).warning(
+                "AI usage model=%s input_tokens=%s output_tokens=%s",
+                cfg.openai_model,
+                usage.input_tokens,
+                usage.output_tokens,
+            )
         if response.output_parsed is None:
             raise ProviderFailure("model_refused_or_incomplete")
         return response.output_parsed
     except ProviderFailure:
         raise
-    except Exception:
+    except Exception as error:
+        logging.getLogger(__name__).warning(
+            "AI request failed: %s status=%s",
+            type(error).__name__,
+            getattr(error, "status_code", None),
+        )
         # Never persist provider error bodies, which may contain student content or credentials.
         raise ProviderFailure("model_request_failed") from None
 
