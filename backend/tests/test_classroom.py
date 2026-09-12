@@ -235,3 +235,75 @@ def test_stale_save_draft_privacy_mapping_and_record_preservation(classroom):
         422,
         files={"file": ("fake.pdf", b"not a pdf", "application/pdf")},
     )
+
+
+def test_open_demo_switches_roles_without_codes_and_keeps_native_api_private(
+    classroom, monkeypatch
+):
+    call, env, client = classroom
+    published = publish(call)
+    assert client.get("/classroom/demo").json() == {"enabled": False}
+    assert (
+        client.get("/classroom/workspace", headers={"X-Verity-Demo-Role": "teacher"}).status_code
+        == 401
+    )
+    monkeypatch.setattr(app.state, "open_demo", True)
+    monkeypatch.setattr(
+        app.state,
+        "demo_users",
+        {
+            "teacher": env["actors"]["instructor"]["id"],
+            "student": env["actors"]["student"]["id"],
+        },
+        raising=False,
+    )
+    assert client.get("/classroom/demo").json() == {"enabled": True}
+    assert client.get("/", follow_redirects=False).headers["location"] == "/student/"
+    teacher = {"X-Verity-Demo-Role": "teacher"}
+    student = {"X-Verity-Demo-Role": "student"}
+    assert client.get("/classroom/me", headers=teacher).json()["role"] == "instructor"
+    assert client.get("/classroom/me", headers=student).json()["role"] == "student"
+    assert client.get("/classroom/workspace", headers=teacher).status_code == 200
+    assert client.get("/classroom/student", headers=student).json()["assignment"]["version"] == 1
+    solution = published["documents"]["solution"]["id"]
+    assert client.get(f"/classroom/files/{solution}", headers=teacher).status_code == 200
+    # Same visitor can switch views; the student projection remains student-shaped.
+    assert client.get(f"/classroom/files/{solution}", headers=student).status_code == 404
+    response = client.post(
+        "/classroom/files",
+        headers=student,
+        files={"file": ("demo.pdf", pdf_bytes(), "application/pdf")},
+    )
+    assert response.status_code == 201
+    response = client.post(
+        "/classroom/attempts",
+        headers=student,
+        json={
+            "id": str(uuid4()),
+            "documentId": response.json()["id"],
+            "version": 1,
+            "mapping": {"q1": [0]},
+            "fileName": "demo.pdf",
+        },
+    )
+    assert response.status_code == 201
+    shared = client.get("/classroom/workspace", headers=teacher).json()
+    assert shared["submissions"][0]["id"] == env["actors"]["student"]["id"]
+    expected = shared["revision"]
+    shared["revision"] += 1
+    assert (
+        client.put(
+            "/classroom/workspace",
+            headers=teacher,
+            json={"expectedRevision": expected, "state": shared},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/classroom/files", files={"file": ("demo.pdf", pdf_bytes(), "application/pdf")}
+        ).status_code
+        == 403
+    )
+    assert client.get("/classroom/me", headers={"X-Verity-Demo-Role": "admin"}).status_code == 422
+    assert env["client"].get("/api/v1/me", headers=teacher).status_code == 401

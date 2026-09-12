@@ -1,0 +1,38 @@
+{
+  "student_id": "s28",
+  "name": "Bianca Russo",
+  "grader": "Prof. R. Castellano",
+  "total": 34,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 1, "max": 1, "comment": "✓"},
+    "1b": {"points": 0.5, "max": 1, "comment": "-0.5 E8 sqrt(1 + 25 + 1) is evaluated as 27; the radical is dropped, and the norm is sqrt(27) = 3 sqrt(3) ≈ 5.20."},
+    "1c": {"points": 2, "max": 3, "comment": "-1 E8 u · w is summed as 12, but -8 - 2 + 18 = 8, so cos θ = 2/7 and θ ≈ 73.40°."},
+    "2a": {"points": 0.5, "max": 1, "comment": "-0.5 E8 BA entry (2,2) is 3(-1) + 1(3) + 1(4) = 4, not 2."},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 0.5, "max": 1, "comment": "-0.5 N6 wA is not boxed or labeled as the final answer."},
+    "2d": {"points": 0.5, "max": 1, "comment": "-0.5 N6 vw and wv are not boxed or labeled as the final answer."},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 3, "max": 3, "comment": "✓"},
+    "3b": {"points": 0, "max": 3, "comment": "-1 E8 R3 → R3 - 3R1 gives the constant 10 - 3(4) = -2, not 0; -2 S3 that slip flips the conclusion, since the system is consistent with z free, so the free variable, the infinitely many solutions, and the parametric form are all lost."},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 4, "max": 4, "comment": "✓"},
+    "5a": {"points": 2, "max": 2, "comment": "✓"},
+    "5b": {"points": 1, "max": 1, "comment": "✓"},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 4, "max": 4, "comment": "✓"},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "1b", "points": -0.5, "rule": "E8", "comment": "sqrt(1 + 25 + 1) is evaluated as 27; the radical is dropped, and the norm is sqrt(27) = 3 sqrt(3) ≈ 5.20."},
+    {"part": "1c", "points": -1, "rule": "E8", "comment": "u · w is summed as 12, but -8 - 2 + 18 = 8, so cos θ = 2/7 and θ ≈ 73.40°."},
+    {"part": "2a", "points": -0.5, "rule": "E8", "comment": "BA entry (2,2) is 3(-1) + 1(3) + 1(4) = 4, not 2."},
+    {"part": "2c", "points": -0.5, "rule": "N6", "comment": "wA is not boxed or labeled as the final answer."},
+    {"part": "2d", "points": -0.5, "rule": "N6", "comment": "vw and wv are not boxed or labeled as the final answer."},
+    {"part": "3b", "points": -1, "rule": "E8", "comment": "R3 → R3 - 3R1 gives the constant 10 - 3(4) = -2, not 0."},
+    {"part": "3b", "points": -2, "rule": "S3", "comment": "The slip flips the conclusion: the system is consistent with z free, so the free variable, the infinitely many solutions, and the parametric form are all lost."}
+  ],
+  "overall_comment": "Your method is sound in every problem; every point lost came from a single bad sum. Recheck each subtraction before you carry it: 10 - 3(4) = -2 in 3(b), not 0, and that one entry turned a consistent system into an inconsistent one and cost the whole part. Label the final answer in Problem 2(c) and 2(d) the way you did everywhere else."
+}

@@ -10,14 +10,14 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import JSON, ForeignKey, Integer, String, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import pdf, storage
-from .auth import course_role, current_user, require_staff
+from .auth import bearer, course_role, current_user, require_staff
 from .config import settings
 from .db import Base, get_db
 from .models import Document, User
@@ -32,9 +32,32 @@ class Classroom(Base):
 
 
 DB = Annotated[Session, Depends(get_db)]
-Actor = Annotated[User, Depends(current_user)]
 app = FastAPI(title="Verity connected classroom")
+app.state.open_demo = False
 ROOT = Path(__file__).resolve().parents[2] / "frontend"
+
+
+async def classroom_actor(request: Request, db: DB):
+    if request.app.state.open_demo:
+        role = request.headers.get("X-Verity-Demo-Role", "student")
+        if role not in {"student", "teacher"}:
+            raise HTTPException(422, "Choose the student or teacher demo perspective")
+        if request.method not in {"GET", "HEAD"} and "X-Verity-Demo-Role" not in request.headers:
+            raise HTTPException(403, "Demo writes require an explicit perspective header")
+        actor_id = getattr(request.app.state, "demo_users", {}).get(role)
+        actor = db.get(User, actor_id) if actor_id else None
+        if not actor:
+            raise HTTPException(503, "Start the classroom using run_classroom.py")
+        return actor
+    return current_user(await bearer(request), db)
+
+
+Actor = Annotated[User, Depends(classroom_actor)]
+
+
+@app.get("/classroom/demo")
+def demo_mode():
+    return {"enabled": app.state.open_demo}
 
 
 def now():
@@ -125,7 +148,7 @@ def student_attempt(state, attempt):
                 # No private rubric labels, rationales, expected answers or invented PDF coordinates.
                 findings.append(
                     {
-                                "id": f"{q['id']}:finding-{len(findings) + 1}",
+                        "id": f"{q['id']}:finding-{len(findings) + 1}",
                         "questionId": q["id"],
                         "category": category,
                         "message": message,
@@ -421,6 +444,8 @@ def sample_reference(name: str, db: DB, actor: Actor):
 @app.get("/teacher/")
 @app.get("/student/")
 def page(request: Request):
+    if request.url.path == "/" and request.app.state.open_demo:
+        return RedirectResponse("/student/", status_code=307)
     name = (
         "teacher.html"
         if request.url.path == "/teacher/"

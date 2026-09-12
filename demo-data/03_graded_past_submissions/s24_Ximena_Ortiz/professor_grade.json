@@ -1,0 +1,37 @@
+{
+  "student_id": "s24",
+  "name": "Ximena Ortiz",
+  "grader": "Prof. R. Castellano",
+  "total": 33,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 1, "max": 1, "comment": "✓"},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 3, "max": 3, "comment": "✓"},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 1, "max": 1, "comment": "✓"},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 1.5, "max": 3, "comment": "-1.5 E1 No elimination is shown; the solution is stated straight off the augmented matrix, and the problem requires every row operation."},
+    "3b": {"points": 1, "max": 3, "comment": "-1 S7 The zero row means z is free, so the system has infinitely many solutions, not one.; -1 E4 Setting z = 0 gives one particular solution, not the general solution in parametric form."},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 4, "max": 4, "comment": "✓"},
+    "5a": {"points": 1, "max": 2, "comment": "-1 E2 Correct RREF, but no row operation is labeled."},
+    "5b": {"points": 0.5, "max": 1, "comment": "-0.5 E7 The rank is stated with no pivot-count justification."},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 2, "max": 4, "comment": "-2 E7 A zero entry and a count of vectors justify nothing; the dependence needs row reduction or the relation v3 = v2 - 2v1."},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "3a", "points": -1.5, "rule": "E1", "comment": "No elimination is shown; the solution is stated straight off the augmented matrix, and the problem requires every row operation."},
+    {"part": "3b", "points": -1, "rule": "S7", "comment": "The zero row means z is free, so the system has infinitely many solutions, not one."},
+    {"part": "3b", "points": -1, "rule": "E4", "comment": "Setting z = 0 gives one particular solution, not the general solution in parametric form."},
+    {"part": "5a", "points": -1, "rule": "E2", "comment": "Correct RREF, but no row operation is labeled."},
+    {"part": "5b", "points": -0.5, "rule": "E7", "comment": "The rank is stated with no pivot-count justification."},
+    {"part": "6a", "points": -2, "rule": "E7", "comment": "A zero entry and a count of vectors justify nothing; the dependence needs row reduction or the relation v3 = v2 - 2v1."}
+  ],
+  "overall_comment": "Problem 3 is where this paper fell apart: 3(a) gives the answer with no elimination at all, and in 3(b) you drop the zero row, set z = 0, and call one particular solution the solution. A free variable means infinitely many solutions, and the general solution must be written in parametric form with the parameter and its domain. Label the row operations in 5(a), and justify your claims: 'v3 has a zero entry' is not an argument for dependence, and a bare rank value earns half credit."
+}

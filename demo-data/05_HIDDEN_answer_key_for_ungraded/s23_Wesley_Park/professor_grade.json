@@ -1,0 +1,35 @@
+{
+  "student_id": "s23",
+  "name": "Wesley Park",
+  "grader": "Prof. R. Castellano",
+  "total": 37,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 0.5, "max": 1, "comment": "-0.5 E1 No work shown; 2u - v and the dot product are never computed."},
+    "1b": {"points": 0.5, "max": 1, "comment": "-0.5 E8 You normed v + w instead of v + (1/2)w; the intermediate vector is [-1, 5, 1]^T."},
+    "1c": {"points": 3, "max": 3, "comment": "✓"},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 1, "max": 1, "comment": "✓"},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 0, "max": 1, "comment": "-1 S7 B^2 is undefined; B is 2x3, and squaring a matrix is not squaring its entries."},
+    "3a": {"points": 3, "max": 3, "comment": "✓"},
+    "3b": {"points": 3, "max": 3, "comment": "✓"},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 4, "max": 4, "comment": "✓"},
+    "5a": {"points": 2, "max": 2, "comment": "✓"},
+    "5b": {"points": 1, "max": 1, "comment": "✓"},
+    "5c": {"points": 3, "max": 4, "comment": "-1 S7 Zero solutions is possible: if b3 ≠ b1 + b2 the last row reads 0 = nonzero, for example b = [0, 0, 1]^T."},
+    "6a": {"points": 4, "max": 4, "comment": "✓"},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "1a", "points": -0.5, "rule": "E1", "comment": "No work shown; 2u - v and the dot product are never computed."},
+    {"part": "1b", "points": -0.5, "rule": "E8", "comment": "You normed v + w instead of v + (1/2)w; the intermediate vector is [-1, 5, 1]^T."},
+    {"part": "2f", "points": -1, "rule": "S7", "comment": "B^2 is undefined; B is 2x3, and squaring a matrix is not squaring its entries."},
+    {"part": "5c", "points": -1, "rule": "S7", "comment": "Zero solutions is possible: if b3 ≠ b1 + b2 the last row reads 0 = nonzero, for example b = [0, 0, 1]^T."}
+  ],
+  "overall_comment": "The elimination in Problems 3, 4, 5, and 6 is complete, labeled, and correct; that is where your points came from. Two conceptual errors cost the rest: B^2 is undefined because B is not square, and squaring a matrix is never squaring its entries; and zero solutions is possible for Ax = b whenever b3 ≠ b1 + b2, since a nonzero matrix can still produce an inconsistent row. Read the expression before you compute it: 1(b) asks for v + (1/2)w, not v + w."
+}

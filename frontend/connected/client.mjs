@@ -1,9 +1,20 @@
 export const connected = globalThis.location?.pathname === '/teacher/' || globalThis.location?.pathname === '/student/';
 const tokenKey = 'verity-session';
+let demo = false, accessCheck;
+const perspective = globalThis.location?.pathname === '/teacher/' ? 'teacher' : 'student';
+async function checkAccessMode() {
+  accessCheck ||= fetch('/classroom/demo').then(async r => {
+    if (!r.ok) throw Error('Cannot connect to the classroom. Check that the server is running.');
+    demo = (await r.json()).enabled === true;
+  }).catch(e => {accessCheck = null; throw e;});
+  await accessCheck;
+}
 export async function request(path, options = {}) {
+  await checkAccessMode();
   const token = sessionStorage.getItem(tokenKey);
-  if (!token) { location.replace('/'); throw Error('Sign in with your course access code.'); }
-  const response = await fetch(`/classroom${path}`, {...options, headers: {Authorization: `Bearer ${token}`, ...options.headers}});
+  if (!demo && !token) { location.replace('/'); throw Error('Sign in with your course access code.'); }
+  const access = demo ? {'X-Verity-Demo-Role': perspective} : {Authorization: `Bearer ${token}`};
+  const response = await fetch(`/classroom${path}`, {...options, headers: {...options.headers, ...access}});
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     if (response.status === 401) { sessionStorage.removeItem(tokenKey); location.replace('/'); }
@@ -80,6 +91,13 @@ export async function revisionBytes(revision) {
   return (await request(`/files/${encodeURIComponent(revision.documentId)}`)).arrayBuffer();
 }
 export function addSignOut() {
+  if (demo) {
+    document.body.classList.add('open-demo');
+    const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
+    nav.innerHTML = `<span>Open demo <small>Dummy data only · everyone has staff access</small></span><div><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA / Professor</a></div>`;
+    document.body.prepend(nav);
+    return;
+  }
   const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Sign out';
   button.className = 'connected-signout'; button.addEventListener('click', () => {sessionStorage.removeItem(tokenKey); location.replace('/');});
   document.body.append(button);

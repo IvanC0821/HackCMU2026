@@ -20,10 +20,17 @@ uv sync
 uv run python run_classroom.py
 ```
 
-Open **http://127.0.0.1:3004/** in two separate tabs. The launcher creates private
-72-hour access codes in `backend/data/classroom/access-codes.json`. Enter the
-`instructor` code in one tab and the `student` code in the other. Don't share or
-commit that file. Each tab keeps its own login; the server checks account roles.
+Open **http://127.0.0.1:3004/**. **No login or access code is needed.** Use the
+**Student** and **TA / Professor** tabs at the top to switch perspectives. You can
+also open each perspective in a separate browser tab; both use the same saved data.
+
+**Open demo: everyone can view and edit staff materials. Use dummy data only.**
+All visitors share one demo student and one teacher. This is intentional for the
+hackathon walkthrough, not a secure multi-user classroom.
+
+Optional private mode: `uv run python run_classroom.py --private` restores access-code
+sign-in. Only that mode uses the locally generated 72-hour codes in
+`backend/data/classroom/access-codes.json`; never commit or share that file.
 
 ### Try the connected flow
 
@@ -40,10 +47,11 @@ commit that file. Each tab keeps its own login; the server checks account roles.
    walkthrough** with the unchanged sample standard. Check incomplete, corrected,
    and alternative work. This is explicitly a fictional structured-matrix demo.
 
-**Privacy:** students cannot retrieve staff workspace data, solution/reference
-PDFs, private notes, draft questions, or other students' submissions. Scores are
-server-derived; students cannot submit their own grades. Concurrent stale staff
-saves are rejected instead of overwriting new student work.
+**Perspectives:** the student screen contains published questions, its own submissions
+and general feedback. The staff screen includes reference PDFs, private notes and
+reviews. Anyone can switch to staff in the default open demo; these are views, not
+security boundaries. `--private` restores backend role enforcement. Concurrent stale
+staff saves are still rejected instead of overwriting new student work.
 
 **Current boundary:** arbitrary uploaded PDFs are saved for manual review; this
 adapter does not yet invoke the native AI grading pipeline. It never attaches a
@@ -51,7 +59,7 @@ fixture score or invented error coordinates to real work. The standalone grading
 API remains available separately. This is a loopback development demo, not a
 production deployment or university SSO integration.
 
-Validation: 72 backend tests passed (2 paid-service tests skipped), 66 staff/shared
+Validation: 73 backend tests passed (2 paid-service tests skipped), 66 staff/shared
 frontend tests passed, and 7 student model tests passed. The new integration checks
 cover privacy, stale writes, immutable uploads, page maps, revisions and chart
 changes from 80% first attempt to 100% latest attempt without counting pending as zero.

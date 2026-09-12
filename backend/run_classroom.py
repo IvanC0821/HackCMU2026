@@ -16,11 +16,11 @@ os.environ["EXTERNAL_AI_ENABLED"] = "false"
 os.environ["LOCAL_TOKENS_ENABLED"] = "true"
 
 
-def provision():
+def provision(private=False):
     from sqlalchemy import select
 
     from verity.auth import issue_token
-    from verity.classroom import Classroom
+    from verity.classroom import Classroom, app
     from verity.db import Base, SessionLocal, engine
     from verity.models import Course, Membership, User
 
@@ -29,7 +29,7 @@ def provision():
     Base.metadata.create_all(engine)
     access = DATA / "access-codes.json"
     # Existing codes are retained. Provision fresh codes with the core admin CLI when expired.
-    codes = json.loads(access.read_text()) if access.exists() else {}
+    codes = json.loads(access.read_text()) if private and access.exists() else {}
     with SessionLocal() as db:
         users = {}
         for role, name in [("instructor", "Professor"), ("student", "Demo student")]:
@@ -39,7 +39,7 @@ def provision():
                 db.add(user)
                 db.flush()
             users[role] = user
-            if role not in codes:
+            if private and role not in codes:
                 codes[role] = issue_token(db, user, hours=72)
         course = db.scalar(select(Course).where(Course.title == "Connected classroom"))
         if not course:
@@ -63,8 +63,10 @@ def provision():
                 Classroom(id="classroom", course_id=course.id, revision=0, state=json.loads(output))
             )
         db.commit()
+        app.state.demo_users = {"teacher": users["instructor"].id, "student": users["student"].id}
+        app.state.open_demo = not private
     # Provisioned access codes are local secrets, never a frontend asset or a Git file.
-    if not access.exists() or json.loads(access.read_text()) != codes:
+    if private and (not access.exists() or json.loads(access.read_text()) != codes):
         fd = os.open(access, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w") as handle:
             json.dump(codes, handle)
@@ -75,11 +77,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=3004)
     parser.add_argument("--provision-only", action="store_true")
+    parser.add_argument(
+        "--private", action="store_true", help="Require access codes instead of open demo switching"
+    )
     args = parser.parse_args()
-    access = provision()
-    print(f"Access codes (private, 72 hours): {access}")
+    access = provision(private=args.private)
+    if args.private:
+        print(f"Access codes (private, 72 hours): {access}")
+    else:
+        print("OPEN DEMO: anyone who can reach this app can switch to staff. Dummy data only.")
     if not args.provision_only:
         import uvicorn
 
-        print(f"Verity sign-in: http://127.0.0.1:{args.port}/")
-        uvicorn.run("verity.classroom:app", host="127.0.0.1", port=args.port, log_level="warning")
+        from verity.classroom import app
+
+        print(f"Verity: http://127.0.0.1:{args.port}/")
+        uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")

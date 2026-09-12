@@ -8,6 +8,23 @@ tags: [integration, contract]
 
 Related: [[contracts]] (the existing core API contract).
 
+## Open-demo amendment (Ivan, 2026-09-12)
+
+The latest request explicitly allows every demo visitor to switch between student
+and staff without an access code. The local launcher now enables open demo mode by
+default; `--private` retains the original authenticated mode. In open mode, a
+`X-Verity-Demo-Role: student|teacher` header selects one of the two provisioned demo
+identities for classroom routes. This is deliberately **not an access boundary**:
+any visitor may select teacher, view references and change reviews. Dummy data only.
+
+GET `/classroom/demo` reports whether open mode is enabled, without returning tokens.
+The root opens the student workspace directly in open mode. Both workspaces provide
+Student / TA–Professor navigation. Native grading API authentication is unchanged;
+the bypass is confined to the connected classroom app and explicit launcher mode.
+Without that launcher flag, role headers grant no access. No database reset occurs.
+
+The original private-mode contract follows.
+
 Approved scope: Ivan, 2026-09-12, combine student and teacher into one application,
 enforce private staff access, test the complete flow, then publish an isolated GitHub branch.
 
