@@ -2,6 +2,28 @@
 
 <!-- TODO: Replace temporary Verity branding before launch. -->
 
+## Easiest way to try it
+
+From `backend/`, run `uv sync --frozen`, then:
+
+```bash
+uv run python -m scripts.debug_server
+```
+
+Open **http://localhost:3000/__debug__/** and click **Run sample homework**.
+It supplies sample accounts, homework/answer-key PDFs, a rubric, and an example
+mistake automatically. Read the hint, then click **Approve sample grade as teacher**
+to see the finalized 2/10. You do not need to enter tokens, IDs or JSON.
+This is a fixed, clearly labeled manual grading demonstration; it does not call AI.
+
+The launcher uses a temporary database and a separate API on port 8001. It does not
+use the ordinary backend database on port 8000. Ctrl+C clears the temporary demo.
+Stop an existing static server on port 3000 first, or choose `--port` and `--api-port`.
+The old request console remains available under **Advanced**.
+
+The two generated sample PDFs are in `frontend/output/pdf/`. Regenerate them from
+`backend/` with `uv run python -m scripts.generate_samples` (development dependencies).
+
 ## Run the debug console
 
 No build step or runtime npm dependencies. From the repository root:
@@ -58,3 +80,5 @@ dependency; the actual debug page is dependency-free. The screenshot is saved to
 
 For architecture, environment, all API routes, data models, troubleshooting and
 scope, see [PROJECT.md](../PROJECT.md).
+
+Run `npm run test:guided` to check the one-click sample and separate teacher approval.

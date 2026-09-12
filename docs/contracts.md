@@ -151,3 +151,24 @@ tokens are never written to browser storage, request logs or output JSON.
 No new backend environment variables or API endpoints are introduced. The debug
 page is unlinked and marked noindex; the URL itself is not access control. Deploy
 it only where backend authorization and your deployment access rules are suitable.
+
+## Local guided sample
+
+`python -m scripts.debug_server` (from backend/) starts a loopback-only debug
+frontend on port 3000 and a separate API on port 8001 using a temporary SQLite
+DB, temporary PDFs, and two provisioned sample identities. It disables all external
+AI and object-storage calls. The database and files disappear when the launcher
+stops; the normal API/database on port 8000 are unaffected.
+
+Only this development server implements `POST /__debug__/session`. It requires
+same-origin JSON requests with a loopback Host and returns demo tokens, the API
+origin, generated homework/answer-key PDFs and the sample rubric. No production
+API endpoint or authentication bypass is introduced. Responses use no-store.
+
+The console's primary button creates a course, enrollment, assignment, published
+rubric, submission and manual assessment through the existing authenticated API.
+The sample has a deliberate circular-induction mistake. Its outcome is a clearly
+labeled fixed demonstration, not AI grading. It immediately issues the approved
+hint, keeps the score hidden, and offers a separate explicit teacher-finalization
+button. Tokens and IDs are filled in memory; raw request controls are collapsed
+under Advanced. Static hosting still supports the existing manual console.

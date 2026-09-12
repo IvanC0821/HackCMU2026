@@ -8,7 +8,22 @@
   <title>Verity API debug</title>
 </head>
 <body>
-  <h1>API debug</h1>
+  <h1>Try sample math homework</h1>
+  <p>Click the button to load a homework PDF, answer key, and rubric. No setup or typing needed in the local demo.</p>
+  <p><strong>Question:</strong> Prove that 1 + 2 + ... + n = n(n + 1) / 2.</p>
+  <p><strong>Sample student work:</strong> The base case is correct, but the proof assumes the formula for k + 1 instead of proving it.</p>
+  <p><a href="../output/pdf/sample-homework.pdf" target="_blank" rel="noopener">View sample homework PDF</a> |
+    <a href="../output/pdf/sample-answer-key.pdf" target="_blank" rel="noopener">View sample answer key</a></p>
+  <p><button id="sample-run" type="button">Run sample homework</button>
+    <button id="sample-approve" type="button" disabled>Approve sample grade as teacher</button></p>
+  <p id="sample-status" role="status" aria-live="polite">Ready to try the example.</p>
+  <p id="sample-mistake"></p>
+  <p id="sample-hint"></p>
+  <p id="sample-score"></p>
+  <p>This fictional example uses a preset grading result to demonstrate the workflow. It does not call AI.</p>
+  <details id="advanced">
+  <summary>Advanced: tokens, IDs, and raw API requests</summary>
+  <h2>API debug</h2>
   <p>Choose a preset, edit the request, and send. The API enforces permissions. Tokens stay in this page’s memory until you clear or reload it.</p>
 
   <fieldset>
@@ -61,6 +76,7 @@
   <pre id="output" tabindex="0"></pre>
   <p><a id="download" hidden>Download response</a></p>
   <img id="image" hidden alt="API page image">
+  </details>
   <noscript>Enable JavaScript to send requests.</noscript>
   <script type="module" src="./app.mjs"></script>
 </body>
