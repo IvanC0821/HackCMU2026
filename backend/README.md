@@ -120,9 +120,9 @@ The worker sends one unrotated PNG per page as a base64 data URI, limited to 10 
 per image. No public storage URL is created. Returned text and formula blocks are
 mapped into the existing step-level evidence records. Blocks are not symbol-accurate
 anchors, and confidence is unknown when the provider supplies none.
-`GLM_OCR_BBOX_FORMAT=normalized` follows the API reference's 0–1 coordinates.
-Some SDK versions describe pixel coordinates; explicitly select `pixels` only
-when that matches your actual response. Pixel mode requires provider page dimensions.
+`GLM_OCR_BBOX_FORMAT=pixels` follows the hosted API response verified on 2026-09-12.
+Pixel mode requires provider page dimensions. The reference documentation instead
+describes 0–1 coordinates; `normalized` remains available for that convention.
 No coordinate format is guessed; malformed boxes, rotations, missing layout or
 inconsistent dimensions fail safely. Token usage is copied into each region's
 evidence for inspection; it must not be summed across regions as a billing total.

@@ -374,9 +374,9 @@ begins, the region map is pinned. PostgreSQL row locks serialize mapping changes
 against job creation. Evidence from another document or mapped question is rejected.
 
 Hosted GLM-OCR receives one unrotated PNG per page via a private base64 request.
-`GLM_OCR_BBOX_FORMAT=normalized` follows the Z.ai API reference (0–1 coordinates).
-Some SDK versions describe pixel coordinates: use `pixels` only when confirmed
-for your deployment; returned page dimensions are then required. The adapter never
+`GLM_OCR_BBOX_FORMAT=pixels` follows the live hosted response verified on
+2026-09-12; returned page dimensions are required. The API reference instead
+describes 0–1 coordinates; `normalized` remains available for that convention. The adapter never
 guesses units. Invalid boxes, reported rotations and aspect-ratio changes fail the
 job rather than placing misleading pins. Actual PNG dimensions and the saved
 inverse transform account for rendering roundoff, crop boxes and PDF rotation.
@@ -457,7 +457,7 @@ settings. Frontend connection values are page inputs, not environment secrets.
 | `OPENAI_MODEL` | Configured Responses model; default `gpt-6-astra` |
 | `OPENAI_REASONING_EFFORT` | `high` |
 | `ZAI_API_KEY` | Optional hosted GLM-OCR credential |
-| `GLM_OCR_BBOX_FORMAT` | `normalized` (default) or `pixels`; see geometry notes |
+| `GLM_OCR_BBOX_FORMAT` | `pixels` (default) or `normalized`; see geometry notes |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URL` | Configure together for verified external RS256 tokens |
 | `LOCAL_TOKENS_ENABLED` | `true`; disable only after external auth is configured |
 | `MAX_PDF_PAGES` | `10` |

@@ -1,6 +1,7 @@
 import base64
 import json
 import struct
+from pathlib import Path
 
 import httpx
 import pymupdf
@@ -10,7 +11,29 @@ from sqlalchemy import select
 from test_jobs import start, stub_assessor
 
 from verity import jobs, pdf, providers
+from verity.config import Settings
 from verity.models import Assignment, Document, Region
+
+
+def test_default_matches_live_hosted_pixel_response(env, homework, monkeypatch):
+    """Synthetic request recorded from Z.ai on 2026-09-12; no student data."""
+    enable(env)
+    cfg = Settings(_env_file=None)
+    assert cfg.glm_ocr_bbox_format == "pixels"
+    env["config"].glm_ocr_bbox_format = cfg.glm_ocr_bbox_format
+    fixture = Path(__file__).parent / "fixtures/glm_hosted_synthetic.json"
+    install_transport(monkeypatch, json.loads(fixture.read_text()))
+    with env["factory"]() as db:
+        doc = db.get(Document, homework["doc"]["id"])
+        providers.extract_ocr(db, db.get(Assignment, homework["assignment"]["id"]), doc)
+        regions = list(
+            db.scalars(
+                select(Region).where(Region.document_id == doc.id, Region.source == "glm-ocr")
+            )
+        )
+        assert len(regions) == 3 and doc.ocr_complete
+        proof = next(r for r in regions if r.text.startswith("Assume"))
+        assert proof.bbox == pytest.approx([100 / 1.5, 224 / 1.5, 458 / 1.5, 246 / 1.5])
 
 
 def response_data(box=None):

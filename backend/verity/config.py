@@ -15,11 +15,11 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = ""
     cors_origins: list[str] = ["http://localhost:3000"]
     external_ai_enabled: bool = False
-    openai_api_key: str = ""
+    openai_api_key: str = Field(default="", repr=False)
     openai_model: str = "gpt-6-astra"
     openai_reasoning_effort: str = "high"
-    zai_api_key: str = ""
-    glm_ocr_bbox_format: Literal["normalized", "pixels"] = "normalized"
+    zai_api_key: str = Field(default="", repr=False)
+    glm_ocr_bbox_format: Literal["normalized", "pixels"] = "pixels"
     jwt_issuer: str = ""
     jwt_audience: str = ""
     jwt_jwks_url: str = ""
