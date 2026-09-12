@@ -23,6 +23,23 @@ from verity.models import Document
 DATA = Path(__file__).resolve().parents[2] / "demo-data"
 
 
+def test_judge_selection_imports_only_three_past_and_one_new(classroom, tmp_path):  # noqa: F811
+    _, env, _ = classroom
+    selection = {
+        "03_graded_past_submissions": ["s06_Farid_Haddad", "s22_Victoria_Lam", "s25_Yusuf_Demir"],
+        "04_ungraded_new_submissions": ["s08_Hiro_Tanaka"],
+    }
+    with env["factory"]() as db:
+        state = import_dataset(db, DATA, tmp_path / "archive", selection=selection)
+        db.commit()
+        assert db.scalar(select(func.count()).select_from(Document)) == 9
+        assert len(state["documents"]["examples"]) == 3
+        assert {s["datasetId"] for s in state["submissions"]} == {"s06", "s08", "s22", "s25"}
+        assert state["demoStudents"][0]["datasetId"] == "s08"
+        assert len(state["dataset"]["files"]) == 9
+        assert not any("HIDDEN" in f["path"] for f in state["dataset"]["files"])
+
+
 def assessment():
     return PilotAssessment(
         parts=[

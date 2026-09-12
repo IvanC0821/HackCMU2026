@@ -84,11 +84,12 @@ def grade_parts(grade):
     return parts
 
 
-def import_dataset(db, root: Path, archive_dir: Path):
+def import_dataset(db, root: Path, archive_dir: Path, *, selection=None):
     room = db.get(Classroom, "classroom")
     if not room:
         raise ValueError("Provision the classroom first")
-    if room.state.get("dataset", {}).get("id") == DATASET_ID:
+    dataset_id = DATASET_ID if selection is None else "fictional-judge-demo-v1"
+    if room.state.get("dataset", {}).get("id") == dataset_id:
         if not room.state["dataset"].get("metadataVersion"):
             state = deepcopy(room.state)
             for questions in [state["draft"], *[v["questions"] for v in state["versions"]]]:
@@ -192,6 +193,8 @@ def import_dataset(db, root: Path, archive_dir: Path):
         for folder in sorted((root / group).iterdir()):
             if not folder.is_dir():
                 continue
+            if selection is not None and folder.name not in selection[group]:
+                continue
             mapping = json.loads((folder / "page_map.json").read_text())
             sid = mapping["student_id"]
             email = f"{sid}@homework1.verity.local"
@@ -267,12 +270,24 @@ def import_dataset(db, root: Path, archive_dir: Path):
                 {"id": user.id, "name": user.name, "datasetId": sid, "attempts": [attempt]}
             )
             roster.append({"id": user.id, "name": user.name, "datasetId": sid, "new": not graded})
-    for filename in ["Grading Guidelines.pdf", "Professor Persona.pdf"]:
+    for filename in (
+        ["Grading Guidelines.pdf", "Professor Persona.pdf"] if selection is None else []
+    ):
         documents["examples"].append(
             ingest(root / "02_professor_answer_key" / filename, teacher, "reference")
         )
-    if len(manifest) != 26 or len(records) != 12:
-        raise ValueError("Expected 26 PDFs and 12 synthetic students")
+    expected_students = 12 if selection is None else sum(len(v) for v in selection.values())
+    expected_pdfs = (
+        26
+        if selection is None
+        else (
+            2
+            + 2 * len(selection["03_graded_past_submissions"])
+            + len(selection["04_ungraded_new_submissions"])
+        )
+    )
+    if len(manifest) != expected_pdfs or len(records) != expected_students:
+        raise ValueError("Selected synthetic dataset is incomplete")
     instructions = guidelines + "\n\n" + persona
     version = {
         "id": 1,
@@ -300,13 +315,13 @@ def import_dataset(db, root: Path, archive_dir: Path):
         "announcement": "",
         "demoLoaded": False,
         "demoStudents": sorted(roster, key=lambda r: (not r["new"], r["datasetId"])),
-        "dataset": {"id": DATASET_ID, "files": manifest, "importedAt": now(), "metadataVersion": 1},
+        "dataset": {"id": dataset_id, "files": manifest, "importedAt": now(), "metadataVersion": 1},
         "log": [
             {
                 "at": now(),
                 "actor": "Dataset importer",
                 "action": "Dataset imported",
-                "detail": "26 PDFs; ten professor-reviewed records; two pending live tests. Prior workspace archived.",
+                "detail": f"{len(manifest)} fictional PDFs; {len(records)} synthetic students. Prior workspace archived.",
             }
         ],
     }
