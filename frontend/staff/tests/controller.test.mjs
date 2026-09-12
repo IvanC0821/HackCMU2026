@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {renderAssessmentExplanation} from '../../connected/review-explanation.mjs';
-const files=['solution-crops.mjs','rubric-pdf.mjs','rubric-studio.mjs','model.mjs','row-check.mjs','case.mjs','storage.mjs','api.mjs','case-view.mjs','view.mjs','app.mjs'];
+const files=['solution-crops.mjs','rubric-pdf.mjs','rubric-studio.mjs','model.mjs','row-check.mjs','case.mjs','storage.mjs','api.mjs','case-view.mjs','grading.mjs', 'grading-view.mjs', 'view.mjs','app.mjs'];
 const code=(await Promise.all(files.map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')))).map(s=>s.replace(/^import .+;\n/gm,'').replace(/^export /gm,'')).join('\n');
 async function screen() {
   const listeners={}, root={}, elements={};

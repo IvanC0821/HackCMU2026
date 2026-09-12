@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse, Response
@@ -19,6 +20,15 @@ from sqlalchemy.orm.exc import StaleDataError
 
 from . import classroom_hints, hint_banks, pdf, providers, storage
 from .auth import bearer, course_role, current_user, require_staff
+from .classroom_review import (
+    ClaimRequest,
+    ReopenRequest,
+    ReviewRequest,
+    claim_submission,
+    guard_bulk_review,
+    reopen_submission,
+    review_question,
+)
 from .classroom_rubrics import DraftRequest, create_draft, get_draft
 from .config import settings
 from .db import Base, get_db
@@ -214,6 +224,10 @@ def student_attempt(state, attempt):
         "documentId": attempt["pdf"]["remoteId"],
         "mapping": {qid: [p - 1 for p in q["pages"]] for qid, q in attempt["questions"].items()},
         "final": attempt["final"],
+        "helpRequests": [
+            {k: h.get(k) for k in ("id", "questionId", "message", "status", "at")}
+            for h in attempt.get("helpRequests", [])
+        ],
         "sample": False,
         "assignment": public_assignment(state, version),
         "result": result if assessed else None,
@@ -234,7 +248,7 @@ async def security_headers(request: Request, call_next):
 @app.get("/classroom/me")
 def me(db: DB, actor: Actor):
     room = room_for(db, actor)
-    return {"name": actor.name, "role": course_role(db, actor, room.course_id)}
+    return {"id": actor.id, "name": actor.name, "role": course_role(db, actor, room.course_id)}
 
 
 @app.get("/classroom/workspace")
@@ -262,6 +276,103 @@ class WorkspaceSave(BaseModel):
     state: dict
 
 
+class HelpRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    questionId: str
+    message: str = Field(default="", max_length=1000)
+
+
+@app.post("/classroom/attempts/{attempt_id}/help")
+def request_help(attempt_id: str, body: HelpRequest, db: DB, actor: Actor):
+    room = room_for(db, actor)
+    if course_role(db, actor, room.course_id) != "student":
+        raise HTTPException(403, "Student account required")
+    state = deepcopy(room.state)
+    student = next((s for s in state["submissions"] if s["id"] == actor.id), None)
+    attempt = (
+        next((a for a in student["attempts"] if a["id"] == attempt_id), None) if student else None
+    )
+    if not attempt:
+        raise HTTPException(404, "Your submission was not found")
+    if body.questionId not in attempt["questions"]:
+        raise HTTPException(422, "Choose a question in this submission")
+    requests = attempt.setdefault("helpRequests", [])
+    if not any(h["questionId"] == body.questionId and h["status"] == "open" for h in requests):
+        requests.append(
+            {
+                "id": str(uuid4()),
+                "questionId": body.questionId,
+                "message": body.message.strip(),
+                "status": "open",
+                "at": now(),
+            }
+        )
+        mutate(db, room, state, room.revision)
+    return student_attempt(state, attempt)
+
+
+@app.post("/classroom/help/{help_id}/resolve")
+def resolve_help(help_id: str, body: ClaimRequest, db: DB, actor: Actor):
+    room = room_for(db, actor)
+    require_staff(db, actor, room.course_id)
+    if body.expectedRevision != room.revision:
+        raise HTTPException(409, "The course changed. Reload before updating this request.")
+    state = deepcopy(room.state)
+    request = next(
+        (
+            h
+            for s in state["submissions"]
+            for a in s["attempts"]
+            for h in a.get("helpRequests", [])
+            if h["id"] == help_id
+        ),
+        None,
+    )
+    if not request:
+        raise HTTPException(404, "Help request not found")
+    request.update(status="addressed", addressedBy=actor.id, addressedAt=now())
+    state["log"].append(
+        {
+            "at": now(),
+            "actor": actor.name,
+            "action": "Help request addressed",
+            "detail": request["questionId"],
+        }
+    )
+    return mutate(db, room, state, room.revision)
+
+
+@app.post("/classroom/grading/attempts/{attempt_id}/claim")
+def assign_grading_submission(attempt_id: str, body: ClaimRequest, db: DB, actor: Actor):
+    room = room_for(db, actor)
+    require_staff(db, actor, room.course_id)
+    if body.expectedRevision != room.revision:
+        raise HTTPException(409, "The workspace changed. Reload before starting this review.")
+    state = deepcopy(room.state)
+    claim_submission(state, attempt_id, actor, body.release)
+    return mutate(db, room, state, room.revision)
+
+
+@app.post("/classroom/grading/{question_id}/review")
+def save_grading_question(question_id: str, body: ReviewRequest, db: DB, actor: Actor):
+    room = room_for(db, actor)
+    require_staff(db, actor, room.course_id)
+    state = deepcopy(room.state)
+    review_question(state, question_id, actor, body)
+    return mutate(db, room, state, room.revision)
+
+
+@app.post("/classroom/grading/attempts/{attempt_id}/reopen")
+def reopen_grading_submission(attempt_id: str, body: ReopenRequest, db: DB, actor: Actor):
+    room = room_for(db, actor)
+    require_staff(db, actor, room.course_id)
+    if body.expectedRevision != room.revision:
+        raise HTTPException(409, "The course changed. Reload before reopening this review.")
+    state = deepcopy(room.state)
+    reopen_submission(state, attempt_id, actor, body.reason)
+    return mutate(db, room, state, room.revision)
+
+
 @app.put("/classroom/workspace")
 def save_workspace(body: WorkspaceSave, db: DB, actor: Actor):
     room = room_for(db, actor)
@@ -279,6 +390,7 @@ def save_workspace(body: WorkspaceSave, db: DB, actor: Actor):
         raise HTTPException(422, "Published standards cannot be replaced. Publish a new version.")
     classroom_hints.prepare(db, room, state, actor.id)
     classroom_hints.bind_published(db, room, state)
+    guard_bulk_review(room.state, state)
     # UI demo/reset controls may not erase actual student records or edit their source work.
     attempts = {a["id"]: a for s in state["submissions"] for a in s["attempts"]}
     for student in room.state["submissions"]:
@@ -522,6 +634,9 @@ def staff_asset(name: str):
         "solution-crops.mjs",
         "rubric-pdf.mjs",
         "rubric-studio.mjs",
+        "grading.mjs",
+        "grading-view.mjs",
+        "grading.css",
     }:
         raise HTTPException(404)
     return FileResponse(

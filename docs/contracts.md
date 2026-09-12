@@ -286,3 +286,10 @@ Generation is a persistent `assignment_hints` job. Requests and worker completio
 checks; stale work cannot overwrite edits/approvals. Failure leaves editable templates and
 an inspectable failed job; regeneration is explicit. Classroom `--ai-hints` enables external
 AI for setup and starts a worker; the default remains a complete manual, no-external-AI path.
+## Whole-submission review and teaching support
+
+Ivan's September 12 correction assigns each TA an entire student's paper. The
+additive local-classroom routes, fields and validation rules are specified in
+[[submission-review-spec]]. Review ownership is per submitted attempt, not per
+question across students. Final grading, practice feedback and explicit help
+requests remain separate. Native assessment contracts are unchanged.

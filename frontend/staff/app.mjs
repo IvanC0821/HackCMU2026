@@ -4,7 +4,8 @@ import {attachHintReview} from '../connected/hints.mjs';
 import {newWorkspace, STAFF_SCHEMA, activeRubric, validateDraft, loadSampleRubric, publishDraft, addQuestion, addCriterion, seedClass, addSampleRevision, updateOutcome, markSkimmed, completeReview, reopenReview, prepareCurrentReviews, draftAnnouncement, parsePageList, record, touch} from './model.mjs';
 import {renderWorkspace, routeFrom, escapeHTML} from './view.mjs';
 import {openStore} from './storage.mjs';
-import {connected, openRemoteStore, addSignOut, json} from '../connected/client.mjs';
+import {connected, openRemoteStore, addSignOut, json, post} from '../connected/client.mjs';
+import {submissionQueue, gradeLink, reviewTotal, reviewTotalLabel} from './grading.mjs';
 import {apiRequest, generateApiDraft} from './api.mjs';
 import {generateConnectedDraft} from '../connected/rubrics.mjs';
 import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, appealCase} from './case.mjs';
@@ -12,6 +13,7 @@ import {caseWork, loadCase, assessCase, submitCaseFinal, reopenCaseSubmission, a
 let state = newWorkspace(), store = null, persistedRevision = 0, saveChain = Promise.resolve(), blocked = false, controller;
 const appRoot = document.querySelector('#app'), dialog = document.querySelector('#staff-dialog');
 const ui = {route: routeFrom(location.hash), editQ: 0, insightQ: 'q1', reviewQ: 'q1', sid: '', attempt: '', doc: 'student', page: 0,
+  gradeQ: '', gradeSid: '', gradeSearch: '', gradePage: 0, gradeAI: false, gradeBusy: false, gradeDrafts: {},
   search: '', filter: 'all', docURLs: {}, error: '', message: '', storageStatus: 'Opening local workspace…', storageError: '',
   busy: false, apiOpen: false, apiOrigin: 'http://localhost:8000', apiCourse: '', apiToken: '', apiProgress: '', consent: false,
   setupDoc: 'solution', setupPage: 1, setupZoom: 1, setupTab: 'rubric', pdfCounts: {}, cropSelection: null, disclosures: {}, selectedDeductions: new Set(),
@@ -25,6 +27,13 @@ function setDocURLs() {
 function render(focus = false) {
   renderCycle++;
   setDocURLs(); ui.sid = decodeURIComponent(location.hash.split('/review/')[1] || '');
+  if (connected && ['review', 'submissions'].includes(ui.route)) {
+    ui.gradeSid = ui.sid; ui.route = 'grade';
+  }
+  if (location.hash.includes('/grade/')) {
+    const parts = location.hash.split('/grade/')[1].split('/');
+    ui.gradeQ = decodeURIComponent(parts[0] || ''); ui.gradeSid = decodeURIComponent(parts[1] || '');
+  }
   document.title = `Verity · ${ui.route === 'home' ? 'Homework' : state.title}`;
   appRoot.innerHTML = renderWorkspace(state, ui);
   if (connected) {
@@ -53,6 +62,74 @@ function render(focus = false) {
   if (focus) document.querySelector('#main')?.focus({preventScroll: true});
 }
 function announce(text) { document.querySelector('#announcement').textContent = text; }
+function rememberGradeDraft() {
+  if (!connected) return;
+  const form = document.querySelector('#grade-review-form');
+  if (!form || !form.querySelector('select:not(:disabled)')) return;
+  const question = activeRubric(state)?.questions.find(q => q.id === form.dataset.q);
+  if (!question) return;
+  const draft = {checkedWork: form.elements.namedItem('checkedWork')?.checked || false,
+    reviewRevision: Number(form.dataset.revision)};
+  for (const c of question.criteria) draft[c.id] = {
+    band: form.elements.namedItem(`band:${c.id}`)?.value || '',
+    reason: form.elements.namedItem(`reason:${c.id}`)?.value || '',
+    resolution: form.elements.namedItem(`resolution:${c.id}`)?.value || null,
+  };
+  ui.gradeDrafts[`${form.dataset.attempt}:${question.id}`] = draft;
+  const attempt = submissionQueue(state).find(r => r.attempt.id === form.dataset.attempt)?.attempt;
+  const output = document.querySelector('#grade-total');
+  if (output && attempt) output.textContent = reviewTotalLabel(reviewTotal(activeRubric(state), attempt, ui.gradeDrafts, ui.gradeAI, question.id));
+}
+async function reloadGradeState() {
+  state = await store.load(); persistedRevision = state.revision;
+  ui.storageStatus = 'Connected · saved to course';
+}
+async function gradingAction(action, button) {
+  if (ui.gradeBusy) return;
+  rememberGradeDraft(); ui.error = ''; ui.message = '';
+  if (action === 'grade-reopen') {
+    showDialog('Reopen submission review', `<form id="grade-reopen-form" data-attempt="${escapeHTML(button.dataset.attempt)}"><p>The completed review will be preserved in history.</p><label>Reason<textarea name="reason" required maxlength="1000" rows="3"></textarea></label><button class="btn primary" type="submit">Reopen review</button></form>`); return;
+  }
+  if (action === 'grade-page-prev' || action === 'grade-page-next') {
+    ui.gradePage = Math.max(0, ui.gradePage + (action.endsWith('next') ? 1 : -1)); render(); return;
+  }
+  try {
+    assertWritable(); await saveChain; ui.gradeBusy = true; render();
+    if (action === 'grade-help-resolve') await post(`/help/${encodeURIComponent(button.dataset.help)}/resolve`, {expectedRevision: persistedRevision});
+    else await post(`/grading/attempts/${encodeURIComponent(button.dataset.attempt)}/claim`, {
+      expectedRevision: persistedRevision, release: action === 'grade-release',
+    });
+    await reloadGradeState(); ui.message = action === 'grade-help-resolve' ? 'Help request marked addressed.' : action === 'grade-release' ? 'Review released.' : 'This submission is assigned to you.';
+  } catch (error) { ui.error = error.message; await reloadGradeState().catch(() => {}); }
+  finally { ui.gradeBusy = false; render(); announce(ui.error || ui.message); }
+}
+async function submitGrade(form) {
+  if (ui.gradeBusy) return;
+  rememberGradeDraft(); ui.error = ''; ui.message = '';
+  const rubric = activeRubric(state), qid = form.dataset.q, attemptId = form.dataset.attempt;
+  const key = `${attemptId}:${qid}`, draft = ui.gradeDrafts[key];
+  if (!draft) return;
+  const question = rubric.questions.find(q => q.id === qid);
+  const row = submissionQueue(state).find(r => r.attempt.id === attemptId);
+  try {
+    assertWritable(); ui.gradeBusy = true; render(); await saveChain;
+    await post(`/grading/${encodeURIComponent(qid)}/review`, {
+      attemptId, expectedQuestionRevision: draft.reviewRevision, checkedWork: draft.checkedWork,
+      decisions: Object.fromEntries(question.criteria.map(c => [c.id, draft[c.id]])),
+    });
+    delete ui.gradeDrafts[key]; await reloadGradeState();
+    const updated = submissionQueue(state).find(r => r.attempt.id === attemptId);
+    const nextQuestion = rubric.questions.find(q => !updated.attempt.questions[q.id]?.skimmed);
+    if (nextQuestion) {
+      location.hash = gradeLink(nextQuestion.id, row.student.id);
+      ui.message = 'Question saved. Continue with the next question.';
+    } else {
+      location.hash = gradeLink(qid, row.student.id);
+      ui.message = 'Whole submission reviewed. Select the next student when you’re ready.';
+    }
+  } catch (error) { ui.error = error.message; await reloadGradeState().catch(() => {}); }
+  finally { ui.gradeBusy = false; render(); announce(ui.error || ui.message); }
+}
 function save() {
   const snapshot = structuredClone(state);
   if (!store || blocked) return Promise.resolve();
@@ -112,6 +189,7 @@ document.addEventListener('click', async event => {
   if (action === 'close-dialog') { dialog.close(); return; }
   if (action === 'cancel-api') { controller?.abort(); ui.apiProgress = 'Stopped waiting. A server job may still be running; check its ID before retrying.'; return; }
   if (ui.busy) return;
+  if (action.startsWith('grade-')) { await gradingAction(action, button); return; }
   ui.error = ''; ui.message = '';
   try {
     const navigation = ['start-crop', 'edit-crop', 'setup-tab', 'setup-prev', 'setup-next', 'setup-zoom-in', 'setup-zoom-out', 'cancel-crop', 'pdf', 'edit-question', 'review-question', 'insight', 'previous-page', 'next-page', 'copy', 'test-api'];
@@ -209,6 +287,7 @@ document.addEventListener('input', event => {
     return;
   }
   if (ui.cropSelection && input.name === 'label') { ui.cropSelection.label = input.value; return; }
+  if (input.closest?.('#grade-review-form')) { rememberGradeDraft(); return; }
   if (input.id === 'case-json') {
     ui.caseJSON = input.value; ui.caseVariant = 'edited';
     const submit = document.querySelector('[data-action="submit-case"]'); if (submit) submit.disabled = true;
@@ -235,6 +314,19 @@ document.addEventListener('change', async event => {
       if (!Number.isInteger(Number(input.value)) || Number(input.value)<1 || Number(input.value)>Number(input.max)) throw Error('Choose a page within this PDF.');
       ui.setupPage = Number(input.value); render(); return;
     }
+    if (input.id === 'grade-student') {
+      rememberGradeDraft();
+      const row = submissionQueue(state).find(r => r.student.id === input.value), rubric = activeRubric(state);
+      if (row) location.hash = gradeLink(rubric.questions.find(q => !row.attempt.questions[q.id]?.skimmed)?.id || rubric.questions[0].id, row.student.id);
+      return;
+    }
+    if (input.id === 'grade-search') { rememberGradeDraft(); ui.gradeSearch = input.value; render(); document.querySelector('#grade-search')?.focus(); return; }
+    if (input.id === 'grade-ai') { rememberGradeDraft(); ui.gradeAI = input.checked; render(); return; }
+    if (input.dataset.gradeComment) {
+      const form = input.closest('form'); form.elements.namedItem(`reason:${input.dataset.gradeComment}`).value = input.value;
+      rememberGradeDraft(); return;
+    }
+    if (input.closest?.('#grade-review-form')) { rememberGradeDraft(); return; }
     if (input.id === 'ai-consent') { ui.consent = input.checked; return; }
     if (input.id === 'case-json') { ui.caseJSON = input.value; ui.caseVariant = 'edited'; return; }
     if (input.id === 'document-kind') { ui.doc = input.value; ui.page = 0; render(); return; }
@@ -289,6 +381,16 @@ document.addEventListener('change', async event => {
 document.addEventListener('submit', async event => {
   if (ui.initializing) { event.preventDefault(); return; }
   const form = event.target;
+  if (form.id === 'grade-reopen-form') {
+    event.preventDefault(); if (ui.gradeBusy) return; ui.gradeBusy = true;
+    try {
+      await post(`/grading/attempts/${encodeURIComponent(form.dataset.attempt)}/reopen`, {expectedRevision: persistedRevision, reason: form.elements.reason.value});
+      dialog.close(); await reloadGradeState(); ui.message = 'Review reopened. The previous completed review is preserved.';
+    } catch (error) { ui.error = error.message; }
+    finally { ui.gradeBusy = false; render(); announce(ui.error || ui.message); }
+    return;
+  }
+  if (form.id === 'grade-review-form') { event.preventDefault(); await submitGrade(form); return; }
   if (!form.matches('.decision-form, #reopen-form, #api-form, #case-appeal, #crop-selection-form')) return;
   event.preventDefault(); ui.error = ''; ui.message = '';
   try {
@@ -344,15 +446,15 @@ document.addEventListener('keydown', event => {
   }
   if (event.key === 'Escape' && ui.cropSelection) { ui.cropSelection = null; render(); }
 });
-window.addEventListener('hashchange', () => { ui.cropSelection = null; ui.route = routeFrom(location.hash); ui.attempt = ''; ui.page = 0; ui.error = ''; render(true); });
+window.addEventListener('hashchange', () => { rememberGradeDraft(); ui.cropSelection = null; ui.gradePage = 0; ui.route = routeFrom(location.hash); ui.attempt = ''; ui.page = 0; ui.error = ''; render(true); });
 dialog.addEventListener('close', () => { document.querySelector('#staff-dialog-body').innerHTML = ''; });
 let refreshing = false;
 async function refreshWorkspace() {
-  if (!store || blocked || refreshing || ui.busy || ui.cropSelection || state.revision !== persistedRevision || document.activeElement?.matches('input, textarea, select')) return;
+  if (!store || blocked || refreshing || ui.busy || ui.gradeBusy || ui.cropSelection || state.revision !== persistedRevision || document.activeElement?.matches('input, textarea, select')) return;
   refreshing = true;
   try {
     const fresh = await store.load();
-    if (fresh?.revision > state.revision) { state = fresh; persistedRevision = fresh.revision; ui.storageError = ''; ui.storageStatus = connected ? 'Saved' : 'Saved in this browser'; render(); announce('New course activity received. Chart and review queue updated.'); }
+    if (fresh?.revision > state.revision) { rememberGradeDraft(); state = fresh; persistedRevision = fresh.revision; ui.storageError = ''; ui.storageStatus = connected ? 'Saved' : 'Saved in this browser'; render(); announce('Course activity updated.'); }
   } catch (error) { ui.storageStatus = 'Connection interrupted · retrying'; const indicator = document.querySelector('.save-state'); if (indicator) indicator.textContent = ui.storageStatus; }
   finally { refreshing = false; }
 }
@@ -368,7 +470,7 @@ async function start() {
       if (work) { ui.caseJSON = JSON.stringify(work, null, 2); ui.caseVariant = Object.keys(caseWork).find(k => JSON.stringify(caseWork[k]) === JSON.stringify(work)) || 'edited'; }
     }
     ui.connected = connected; ui.storageStatus = connected ? 'Saved' : 'Saved in this browser';
-    if (connected) { addSignOut(); setInterval(refreshWorkspace, 1500); }
+    if (connected) { ui.actor = await json('/me'); addSignOut(); setInterval(refreshWorkspace, 1500); }
   } catch (error) { if (connected) { blocked = true; return; } ui.storageError = error.message; ui.storageStatus = 'Session only'; }
   ui.initializing = false; render();
 }
