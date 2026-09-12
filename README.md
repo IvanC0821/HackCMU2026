@@ -17,6 +17,7 @@ cd HackCMU2026/frontend/student
 npm ci
 cd ../../backend
 uv sync
+uv run python import_classroom_dataset.py --replay-recorded
 uv run python run_classroom.py
 ```
 
@@ -25,14 +26,28 @@ Open **http://127.0.0.1:3004/**. **No login or access code is needed.** Use the
 also open each perspective in a separate browser tab; both use the same saved data.
 
 **Open demo: everyone can view and edit staff materials. Use dummy data only.**
-All visitors share one demo student and one teacher. This is intentional for the
+The student selector opens any of the twelve synthetic students. Everyone can switch to the teacher. This is intentional for the
 hackathon walkthrough, not a secure multi-user classroom.
+
+### Current dataset and real test results
+
+The importer loads all **26 PDFs**, the professor's six-question/40-point standard,
+ten past professor grades, and two new submissions. The command above replays the
+recorded AI assessments at no API cost: **Hiro 38.5/40; Wesley 37/40**. Each matched
+the hidden professor grade on all 19 parts. These are recorded results, not fresh
+live grading. Select a student and click **View submission**; open the teacher's
+Review queue or Overview to see the same records and live chart.
+
+For a new paid test instead, start with `uv run python import_classroom_dataset.py --grade-new`
+before replaying recorded results. Requires the existing server-side OpenAI key.
+Completed grades are never overwritten or silently re-run. The measured real calls
+took **74.86 and 92.63 seconds**. [Full test report and limits](docs/dataset-test-run.md).
 
 Optional private mode: `uv run python run_classroom.py --private` restores access-code
 sign-in. Only that mode uses the locally generated 72-hour codes in
 `backend/data/classroom/access-codes.json`; never commit or share that file.
 
-### Try the connected flow
+### Try another connected assignment
 
 1. Teacher: open Homework 1 → Grading standards → Use sample materials →
    Finalize grading standard. Alternatively attach your own reference PDFs and
@@ -53,13 +68,13 @@ reviews. Anyone can switch to staff in the default open demo; these are views, n
 security boundaries. `--private` restores backend role enforcement. Concurrent stale
 staff saves are still rejected instead of overwriting new student work.
 
-**Current boundary:** arbitrary uploaded PDFs are saved for manual review; this
-adapter does not yet invoke the native AI grading pipeline. It never attaches a
+**Current boundary:** arbitrary uploaded PDFs are saved for manual review; paid AI
+grading is currently the explicit dataset CLI pilot, not the native upload pipeline. It never attaches a
 fixture score or invented error coordinates to real work. The standalone grading
 API remains available separately. This is a loopback development demo, not a
 production deployment or university SSO integration.
 
-Validation: 73 backend tests passed (2 paid-service tests skipped), 66 staff/shared
+Validation: 76 backend tests passed (2 paid-service tests skipped), 66 staff/shared
 frontend tests passed, and 7 student model tests passed. The new integration checks
 cover privacy, stale writes, immutable uploads, page maps, revisions and chart
 changes from 80% first attempt to 100% latest attempt without counting pending as zero.

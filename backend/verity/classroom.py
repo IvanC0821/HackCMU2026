@@ -45,6 +45,13 @@ async def classroom_actor(request: Request, db: DB):
         if request.method not in {"GET", "HEAD"} and "X-Verity-Demo-Role" not in request.headers:
             raise HTTPException(403, "Demo writes require an explicit perspective header")
         actor_id = getattr(request.app.state, "demo_users", {}).get(role)
+        if role == "student":
+            room = db.get(Classroom, "classroom")
+            roster = room.state.get("demoStudents", []) if room else []
+            if roster:
+                actor_id = request.headers.get("X-Verity-Demo-Student", roster[0]["id"])
+                if actor_id not in {s["id"] for s in roster}:
+                    raise HTTPException(403, "Choose a student from the synthetic demo roster")
         actor = db.get(User, actor_id) if actor_id else None
         if not actor:
             raise HTTPException(503, "Start the classroom using run_classroom.py")
@@ -56,8 +63,16 @@ Actor = Annotated[User, Depends(classroom_actor)]
 
 
 @app.get("/classroom/demo")
-def demo_mode():
-    return {"enabled": app.state.open_demo}
+def demo_mode(db: DB):
+    result = {"enabled": app.state.open_demo}
+    if app.state.open_demo:
+        room = db.get(Classroom, "classroom")
+        roster = room.state.get("demoStudents", []) if room else []
+        if roster:
+            result["students"] = [
+                {"id": s["id"], "name": s["name"], "new": s["new"]} for s in roster
+            ]
+    return result
 
 
 def now():
@@ -123,6 +138,9 @@ CATEGORIES = {
     "formatting": ("Formatting error", "Check the course's presentation requirements."),
     "missing": ("Missing work", "Some supporting work may be missing."),
     "missing work": ("Missing work", "Some supporting work may be missing."),
+    "missing-work": ("Missing work", "Some supporting work may be missing."),
+    "presentation": ("Presentation", "Check how you present and label your work."),
+    "method": ("Method", "Check the method requested for this question."),
     "arithmetic": ("Calculation error", "Check the calculations in this question."),
 }
 
@@ -142,7 +160,9 @@ def student_attempt(state, attempt):
             score += band["points"]
             if band["points"] < criterion["max"]:
                 category, message = CATEGORIES.get(
-                    criterion.get("category", "").lower().replace(" error", ""),
+                    result.get("category", criterion.get("category", ""))
+                    .lower()
+                    .replace(" error", ""),
                     ("Work to revisit", "Review your work on this question with your TA."),
                 )
                 # No private rubric labels, rationales, expected answers or invented PDF coordinates.
@@ -156,13 +176,25 @@ def student_attempt(state, attempt):
                         "scope": "question",
                     }
                 )
+                anchor = result.get("anchor")
+                if (
+                    isinstance(anchor, dict)
+                    and type(anchor.get("pageIndex")) is int
+                    and anchor.get("pageIndex", -1) + 1 in review.get("pages", [])
+                    and all(
+                        isinstance(anchor.get(k), (int, float)) and 0 <= anchor[k] <= 1
+                        for k in ("x", "y")
+                    )
+                ):
+                    findings[-1].update({k: anchor[k] for k in ("pageIndex", "x", "y")})
+                    findings[-1]["scope"] = "location"
         questions.append({"id": q["id"], "score": round(score, 2) if resolved else None})
     complete = all(q["score"] is not None for q in questions)
     assessed = any(
         r.get("band") for q in attempt["questions"].values() for r in q["results"].values()
     )
     result = {
-        "source": "staff",
+        "source": attempt.get("assessmentSource", "staff"),
         "estimatedScore": round(sum(q["score"] for q in questions), 2) if complete else None,
         "maxScore": sum(q["points"] for q in public_assignment(state, version)["questions"]),
         "questions": questions,

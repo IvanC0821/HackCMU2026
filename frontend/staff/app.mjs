@@ -25,7 +25,7 @@ function render(focus = false) {
     const copy = new Map([
       ['Start with one homework. Your standards, PDFs, and reviews are saved in this browser.', 'Your standards, PDFs and student revisions are saved to the shared course.'],
       ['PDFs stay in this browser unless you explicitly send them to the connected API.', 'References are saved privately to your course. Only the published blank assignment is visible to students.'],
-      ['This local MVP does not publish real grades. Student uploads and live grading integration come next.', 'Student PDFs arrive here automatically. Saved scoring decisions update student feedback and the live chart. AI grading is not enabled for uploads.'],
+      ['This local MVP does not publish real grades. Student uploads and live grading integration come next.', 'Student PDFs arrive here automatically. Saved decisions update student feedback and the live chart. Dataset AI assessments are provisional; other new uploads wait for staff review.'],
     ]);
     for (const el of appRoot.querySelectorAll('.quiet-note, .privacy-note')) if (copy.has(el.textContent)) el.textContent = copy.get(el.textContent);
   }

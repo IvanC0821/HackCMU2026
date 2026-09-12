@@ -1,11 +1,13 @@
 export const connected = globalThis.location?.pathname === '/teacher/' || globalThis.location?.pathname === '/student/';
 const tokenKey = 'verity-session';
-let demo = false, accessCheck;
+let demo = false, accessCheck, demoStudents = [];
+const studentKey = 'verity-demo-student';
 const perspective = globalThis.location?.pathname === '/teacher/' ? 'teacher' : 'student';
 async function checkAccessMode() {
   accessCheck ||= fetch('/classroom/demo').then(async r => {
     if (!r.ok) throw Error('Cannot connect to the classroom. Check that the server is running.');
-    demo = (await r.json()).enabled === true;
+    const mode = await r.json(); demo = mode.enabled === true; demoStudents = mode.students || [];
+    if (demoStudents.length && !demoStudents.some(s => s.id === sessionStorage.getItem(studentKey))) sessionStorage.setItem(studentKey, demoStudents[0].id);
   }).catch(e => {accessCheck = null; throw e;});
   await accessCheck;
 }
@@ -14,6 +16,7 @@ export async function request(path, options = {}) {
   const token = sessionStorage.getItem(tokenKey);
   if (!demo && !token) { location.replace('/'); throw Error('Sign in with your course access code.'); }
   const access = demo ? {'X-Verity-Demo-Role': perspective} : {Authorization: `Bearer ${token}`};
+  if (demo && perspective === 'student' && demoStudents.length) access['X-Verity-Demo-Student'] = sessionStorage.getItem(studentKey);
   const response = await fetch(`/classroom${path}`, {...options, headers: {...options.headers, ...access}});
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -96,6 +99,17 @@ export function addSignOut() {
     const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
     nav.innerHTML = `<span>Open demo <small>Dummy data only · everyone has staff access</small></span><div><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA / Professor</a></div>`;
     document.body.prepend(nav);
+    if (perspective === 'student' && demoStudents.length) {
+      const select = document.createElement('select'); select.setAttribute('aria-label', 'Demo student');
+      for (const student of demoStudents) {
+        const option = document.createElement('option'); option.value = student.id;
+        option.textContent = `${student.name}${student.new ? ' · new submission' : ' · past grade'}`;
+        select.append(option);
+      }
+      select.value = sessionStorage.getItem(studentKey);
+      select.addEventListener('change', () => {sessionStorage.setItem(studentKey, select.value); location.reload();});
+      nav.querySelector('div').prepend(select);
+    }
     return;
   }
   const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Sign out';

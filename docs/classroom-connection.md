@@ -6,6 +6,19 @@ tags: [integration, contract]
 
 # Connected classroom contract
 
+## Dataset pilot amendment (Ivan, 2026-09-12)
+
+The labeled `demo-data` files may replace the active local classroom after archiving
+its previous state. The importer stores all 26 PDFs, imports ten professor-reviewed
+records, and maps two new student submissions from their supplied page maps. An
+explicit CLI `--grade-new` runs two paid assessments; public demo uploads do not
+automatically incur API charges. Only assignment/professor PDFs, ten graded-example
+PDFs, and the target submission enter the grader. Hidden keys, README spoilers, and
+the summary CSV are excluded; comparison happens after raw responses are saved.
+AI scores remain provisional and server-calculated from published half-point bands.
+Open demo exposes a synthetic-student selector using `X-Verity-Demo-Student`, limited
+to the imported roster. Private mode still derives identity from authentication.
+
 Related: [[contracts]] (the existing core API contract).
 
 ## Open-demo amendment (Ivan, 2026-09-12)
