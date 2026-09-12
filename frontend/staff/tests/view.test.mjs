@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newWorkspace, loadSampleRubric, publishDraft, seedClass, addSampleRevision} from '../model.mjs';
 import {renderWorkspace, routeFrom} from '../view.mjs';
-const baseUI = {route:'home', editQ:0, insightQ:'q1', reviewQ:'q1', sid:'demo-1', attempt:'', search:'', filter:'all', doc:'student', page:0, docURLs:{}, apiOrigin:'http://localhost:8000', apiCourse:'', apiToken:'', storageStatus:'Saved locally'};
+const baseUI = {route:'home', editQ:0, insightQ:null, reviewQ:'q1', sid:'demo-1', attempt:'', search:'', filter:'all', doc:'student', page:0, docURLs:{}, apiOrigin:'http://localhost:8000', apiCourse:'', apiToken:'', storageStatus:'Saved locally'};
 function fixture() {const s = newWorkspace(); loadSampleRubric(s); publishDraft(s); seedClass(s); return s;}
 test('all routes render semantic navigation and an empty chart without invented scores', () => {
   const s = newWorkspace();
   for (const route of ['home','standards','dashboard','submissions','activity','review']) {
-    const html = renderWorkspace(s, {...baseUI, route}); assert.match(html, /<main id="main"/); if (route !== 'standards') assert.match(html, /aria-label="Courses"/);
+    const html = renderWorkspace(s, {...baseUI, route}); assert.match(html, /<main id="main"/); assert.match(html, /aria-label="Courses"/);
   }
   const empty = renderWorkspace(s, {...baseUI, route:'dashboard'});
   assert.match(empty, /<svg class="question-chart"/);
@@ -22,7 +22,7 @@ test('all routes render semantic navigation and an empty chart without invented 
 });
 test('chart exposes real denominators, percentages and provisional sample disclosure', () => {
   const s = fixture(); addSampleRevision(s);
-  const html = renderWorkspace(s, {...baseUI, route:'dashboard'});
+  const html = renderWorkspace(s, {...baseUI, route:'dashboard', insightQ:'q1'});
   assert.match(html, /first 70%, latest 100%, 1 assessed/);
   assert.match(html, /Fictional demo records/); assert.match(html, /Estimates until TA review/);
   assert.match(html, /not class-wide conclusions/); assert.match(html, /<table>/);
@@ -50,4 +50,18 @@ test('all user text is escaped, including PDF names, prompts and activity reason
   for (const route of ['home','review','activity']) {
     const html=renderWorkspace(s,{...baseUI,route}); assert.doesNotMatch(html,/<script>|<img src=x/); if(route!=='home') assert.match(html,/&lt;/);
   }
+});
+
+test('question details are hidden until a valid question is selected', () => {
+  const s = fixture();
+  const overview = renderWorkspace(s, {...baseUI, route:'dashboard'});
+  assert.doesNotMatch(overview, /id="question-statistics"|class="question-summary"/);
+  assert.match(overview, /class="chart-point" role="button" tabindex="0"/);
+  assert.match(overview, /Show question statistics/);
+  for (const q of s.versions[0].questions) {
+    const selected = renderWorkspace(s, {...baseUI, route:'dashboard', insightQ:q.id});
+    assert.match(selected, /id="question-statistics"/);
+    assert(selected.includes(`id="question-statistics-title">${q.title}</h2>`));
+  }
+  assert.doesNotMatch(renderWorkspace(s, {...baseUI, route:'dashboard', insightQ:'removed-question'}), /id="question-statistics"/);
 });
