@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup} from '../annotations.mjs';
+import {studentHint, located, locationLabel, findingNumber, layoutMarkers, layoutCallouts, markerMarkup, calloutMarkup, detailMarkup} from '../annotations.mjs';
 const finding={id:'q3:3a',pageIndex:2,x:.6,y:.3,kind:'line',category:'Notation error',message:'Check notation here.',boxes:[{x:.2,y:.28,width:.35,height:.04}]};
 test('circles preserve the actual saved error point at every zoom and page',()=>{
  const [a]=layoutMarkers([finding],2,600,800),[b]=layoutMarkers([finding],2,900,1200);
@@ -24,7 +24,7 @@ test('hint numbers match sidebar identity across page filtering and sorting',()=
  const second={...finding,id:'second',y:.1},third={...finding,id:'third',pageIndex:3};
  const findings=[finding,second,third],pins=layoutMarkers(findings,2,600,800);
  assert.deepEqual(pins.map(p=>p.number),[2,1]);assert.equal(findingNumber(findings,'second'),2);
- assert.match(markerMarkup(pins,'second'),/Hint 2: Notation error/);
+ assert.match(markerMarkup(pins,'second'),/Hint 2: Marked line/);
  assert.match(calloutMarkup(layoutCallouts(pins,600,800),null),/id="pdf-hint-2"/);
 });
 test('bottom-edge notes extend the annotation gutter without clipping or moving the error',()=>{
@@ -44,7 +44,7 @@ test('work and uncertain part anchors keep their location qualifiers',()=>{
 test('all hint text and identifiers are escaped',()=>{
  const f={...finding,id:'" onclick="bad()',category:'<script>bad()</script>',message:'<img onerror="bad()">'};
  const pins=layoutMarkers([f],2,600,800);const html=markerMarkup(pins,f.id)+calloutMarkup(layoutCallouts(pins,600,800),f.id);
- assert.doesNotMatch(html,/<script>|<img/);assert.match(html,/&lt;script&gt;/);
+ assert.doesNotMatch(html,/<script>|<img/);assert.doesNotMatch(html,/&lt;script&gt;/);assert.match(html,/&lt;img/);
  assert.doesNotMatch(html,/data-marker="" onclick=/);
 });
 test('missing locations and malformed regions never produce invented highlights',()=>{
@@ -53,4 +53,18 @@ test('missing locations and malformed regions never produce invented highlights'
  const [p]=layoutMarkers([finding],2,600,800);
  assert.equal(detailMarkup({...finding,boxes:[null,{x:.5,y:.5,width:2,height:.1}]},p).highlights,'');
  assert.match(detailMarkup(finding,p).highlights,/left:20%/);
+});
+
+test('student hints omit diagnosis labels and later sentences without altering grader data',()=>{
+ const f={...finding,category:'Circular reasoning',message:'The next case is assumed rather than derived. Use the induction hypothesis to justify it.'};
+ const pins=layoutMarkers([f],2,600,800);
+ const html=markerMarkup(pins,null)+calloutMarkup(layoutCallouts(pins,600,800),null);
+ assert.match(html,/The next case is assumed rather than derived\./);
+ assert.doesNotMatch(html,/Circular reasoning|Use the induction hypothesis/);
+ assert.equal(f.category,'Circular reasoning');
+ assert.match(f.message,/Use the induction hypothesis/);
+ assert.equal(studentHint('The value 2.5 may need another look. Replace it with 3.'),'The value 2.5 may need another look.');
+ assert.equal(studentHint('Is this step supported? Write the missing proof.'),'Is this step supported?');
+ assert.equal(studentHint('A single observation without punctuation'),'A single observation without punctuation');
+ assert.equal(studentHint(null),'');
 });

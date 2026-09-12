@@ -94,4 +94,6 @@ The review screen uses a wide PDF viewer and a single right sidebar. Every total
 
 Zoom controls sit above the PDF (75–300%, with a fit-width reset). Question rows, deduction links, page controls, and **Next question** navigate the submission. On phones, switch between Submission and Questions & estimates; a located deduction opens its PDF page. Original download, upload revisions, history, and connected hand-in remain available. The student demo navigation omits the staff perspective link.
 
-Validation: 15 student unit tests and the annotation browser workflow cover persistent callouts, exact anchors, zoom, phone overflow, question/deduction navigation, example persistence, and estimate labels for both local examples and connected reviewed results.
+Validation: 16 student unit tests and the annotation browser workflow cover persistent callouts, exact anchors, zoom, phone overflow, question/deduction navigation, example persistence, and estimate labels for both local examples and connected reviewed results.
+
+Student-facing hints have no error-type title, including in accessible marker labels and announcements. Only the opening sentence is displayed in the sidebar and persistent PDF note; this also applies to older saved results. The two example hints stop at “The next case is assumed rather than derived.” and “The condition k > 0 does not specify which values k can take.” Grader categories and source feedback are preserved. Estimated grade labels remain; redundant “not official” copy has been removed.

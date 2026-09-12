@@ -19,7 +19,7 @@ try{
  await page.evaluate(async()=>{
   const {makeRevision,sampleResult}=await import('./model.mjs');const {saveRevision}=await import('./storage.mjs');
   const result=structuredClone(sampleResult);
-  result.findings.push({...result.findings[0],id:'nearby',x:.76,y:.493,message:'Check the induction assumption before applying it to the next step. '.repeat(5)});
+  result.findings.push({...result.findings[0],id:'nearby',x:.76,y:.493,message:'This extended observation describes the work without giving a correction, '.repeat(5)+'and ends here.'});
   result.findings.push({...result.findings[0],id:'bottom-edge',x:.98,y:.97,message:'Revisit the conclusion at the end of this page.'});
   result.findings.push({id:'unlocated',questionId:'q2',category:'Review needed',message:'No exact position was returned.'});
   await saveRevision(makeRevision({bytes:await(await fetch('./assets/sample-homework.pdf')).arrayBuffer(),fileName:'sample-homework.pdf',mapping:{q1:[0],q2:[1],q3:[2]},result,number:1,sample:true}));
@@ -44,7 +44,7 @@ try{
  check(await geometry());
  await page.locator('.hint-heading').first().click();await page.keyboard.press('Escape');
  assert.equal(await page.locator('.pdf-hint-box').count(),3,'Dismissing selection never hides hint boxes');
- await page.selectOption('#page-select','2');await page.locator('.pdf-hint-box').filter({hasText:'Notation error'}).waitFor();
+ await page.selectOption('#page-select','2');await page.locator('.pdf-hint-box').filter({hasText:'Some notation may be incomplete or ambiguous.'}).waitFor();
  assert.equal(await page.locator('.pdf-hint-box').count(),1,'Page changes only show that page’s hints');
  await page.selectOption('#page-select','0');await page.waitForFunction(()=>document.querySelectorAll('.pdf-hint-box').length===0);
  await page.selectOption('#page-select','1');await page.locator('.pdf-hint-box').nth(2).waitFor();
@@ -62,7 +62,9 @@ try{
  assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
  assert.match(await page.locator('.feedback-card').innerText(),/Estimated deduction/);
  assert.doesNotMatch(await page.locator('body').innerText(), /\bTA\b|Reviewed score|Example grade|Applied deductions/);
- assert.match(await page.locator('.estimate').innerText(), /Not official/);
+ assert.doesNotMatch(await page.locator('.estimate').innerText(), /Not official/);
+ assert.doesNotMatch(await page.locator('#app').innerHTML(),/Circular reasoning|Missing domain|Use the induction hypothesis|State the domain/);
+ assert.match(await page.locator('.feedback-message').innerText(),/^The next case is assumed rather than derived\.$/);
  assert.equal(await page.locator('.sidebar').count(),0,'Review leaves space for the PDF');
  assert.match(await page.locator('.applied-deduction').innerText(),/−4/);
  assert.match(await page.locator('.review-question[data-question="q2"]').innerText(),/6\s*\/ 10/);
@@ -86,6 +88,7 @@ try{
  const fixture=await page.evaluate(async()=>{
   const {assignment,gradedExampleResult}=await import('./model.mjs');
   const result=structuredClone(gradedExampleResult);result.reviewed=true;result.source='professor-import';
+  result.findings[0].message+=' Use the induction hypothesis to justify the transition to k + 1.';
   return {revision:1,assignment,attempts:[{id:'connected-example',number:1,createdAt:new Date().toISOString(),fileName:'submission.pdf',documentId:'sample',mapping:{q1:[0],q2:[1],q3:[2]},assignment,result}]};
  });
  const index=await readFile(`${root}/frontend/student/index.html`,'utf8');
@@ -101,9 +104,11 @@ try{
  await page.locator('[data-action="latest"]').click();
  await page.locator('.pdf-hint-box').waitFor();
  assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
- assert.match(await page.locator('.estimate').innerText(),/Not official/);
+ assert.doesNotMatch(await page.locator('.estimate').innerText(),/Not official/);
  assert.doesNotMatch(await page.locator('body').innerText(),/\bTA\b|Professor|Reviewed score|Imported professor grade/);
  assert.equal(await page.locator('.demo-switcher a[href="/teacher/"]').count(),0);
+ assert.doesNotMatch(await page.locator('#app').innerHTML(),/Circular reasoning|Missing domain|Use the induction hypothesis/);
+ assert.match(await page.locator('.feedback-message').innerText(),/^The next case is assumed rather than derived\.$/);
  assert.equal(await page.locator('[data-action="final"]').count(),1,'Submission hand-in remains available');
  assert.deepEqual(errors,[]);
  console.log('Annotation browser passed: persistent hints, exact circles, connected lines, measured non-overlapping boxes, zoom, page filtering, unknown locations, and mobile scrolling.');

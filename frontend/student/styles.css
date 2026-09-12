@@ -122,3 +122,6 @@ body:has(.review-shell):not(.open-demo):has(.connected-signout) .review-footer{p
 @media(max-width:760px){.open-demo .review-shell .review-grid{height:auto}}
 
 .hint-heading{flex-wrap:wrap}.hint-heading strong{flex:1}.hint-deduction{flex-basis:100%;margin-left:28px;flex-direction:row;justify-content:space-between;align-items:center}.hint-deduction>span{font-size:11px}
+
+/* Student hints have no diagnostic title; keep only the marker and estimate. */
+.hint-heading .hint-deduction{flex:1;flex-direction:row;margin-left:0;gap:8px}.hint-heading{align-items:center}
