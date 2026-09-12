@@ -154,6 +154,15 @@ try{
  assert.equal(await page.locator('.course-rail').count(),0,'Rubric editor omits the course navigation rail');
  await page.screenshot({path:'/private/tmp/verity-rubric-mobile.png',fullPage:true});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow on mobile');
+ await page.locator('.demo-perspectives').getByRole('link',{name:'Student',exact:true}).click();
+ await page.locator('[data-action="latest"]').waitFor();
+ assert(await page.locator('.demo-perspectives').getByRole('link',{name:'TA',exact:true}).isVisible());
+ await page.locator('.demo-perspectives').getByRole('link',{name:'TA',exact:true}).click();
+ await page.waitForURL('**/teacher/');
+ await page.locator('.demo-perspectives').getByRole('link',{name:'Student',exact:true}).waitFor({state:'visible'});
+ await page.goto(`${origin}/student-assets/index.html?example=graded`);
+ await page.locator('.pdf-hint-box').waitFor();
+ for(const name of ['Student','TA'])assert(await page.locator('.demo-perspectives').getByRole('link',{name,exact:true}).isVisible(),'Hosted examples retain both perspectives');
  assert.deepEqual(errors,[]);
  console.log('Rubric browser passed: PDF canvas, pointer and keyboard crops, long-page navigation, multi-question editing, remote persistence, immutable TA previews, student privacy, replacement remapping, responsive layout.');
 }catch(error){

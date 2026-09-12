@@ -91,13 +91,14 @@ try{
   result.findings[0].message+=' Use the induction hypothesis to justify the transition to k + 1.';
   return {revision:1,assignment,attempts:[{id:'connected-example',number:1,createdAt:new Date().toISOString(),fileName:'submission.pdf',documentId:'sample',mapping:{q1:[0],q2:[1],q3:[2]},assignment,result}]};
  });
- const index=await readFile(`${root}/frontend/student/index.html`,'utf8');
+ const index=(await readFile(`${root}/frontend/student/index.html`,'utf8')).replace('</head>','<link rel="stylesheet" href="/connected/shared.css"></head>');
+ await page.route('**/connected/shared.css',async r=>r.fulfill({contentType:'text/css',body:await readFile(`${root}/frontend/connected/shared.css`,'utf8')}));
  await page.route('**/student/',r=>r.fulfill({contentType:'text/html',body:index.replace('href="./styles.css"','href="/styles.css"').replace('src="./app.mjs"','src="/app.mjs"')}));
  await page.route('**/connected/client.mjs',async r=>r.fulfill({contentType:'text/javascript',body:await readFile(`${root}/frontend/connected/client.mjs`,'utf8')}));
  await page.route('**/classroom/**',async r=>{
   const pathname=new URL(r.request().url()).pathname;
   if(pathname==='/classroom/files/sample')return r.fulfill({contentType:'application/pdf',body:await readFile(`${root}/frontend/student/assets/sample-homework.pdf`)});
-  const data=pathname==='/classroom/demo'?{enabled:true,students:[]}:pathname==='/classroom/me'?{role:'student'}:fixture;
+  const data=pathname==='/classroom/demo'?{enabled:true,students:[{id:'demo-one',name:'Example student 1'},{id:'demo-two',name:'Example student 2'}]}:pathname==='/classroom/me'?{role:'student'}:fixture;
   return r.fulfill({json:data});
  });
  await page.goto(origin+'/student/');
@@ -105,11 +106,30 @@ try{
  await page.locator('.pdf-hint-box').waitFor();
  assert.match(await page.locator('.estimate').innerText(),/Estimated grade/);
  assert.doesNotMatch(await page.locator('.estimate').innerText(),/Not official/);
- assert.doesNotMatch(await page.locator('body').innerText(),/\bTA\b|Professor|Reviewed score|Imported professor grade/);
- assert.equal(await page.locator('.demo-switcher a[href="/teacher/"]').count(),0);
+ assert.doesNotMatch(await page.locator('#app').innerText(),/\bTA\b|Professor|Reviewed score|Imported professor grade/);
+ assert.equal(await page.locator('.demo-switcher a[href="/teacher/"]').count(),1);
  assert.doesNotMatch(await page.locator('#app').innerHTML(),/Circular reasoning|Missing domain|Use the induction hypothesis/);
  assert.match(await page.locator('.feedback-message').innerText(),/^The next case is assumed rather than derived\.$/);
  assert.equal(await page.locator('[data-action="final"]').count(),1,'Submission hand-in remains available');
+ for(const width of [1600,390]){
+  await page.setViewportSize({width,height:900});
+  for(const role of ['Student','TA'])assert(await page.locator('.demo-perspectives').getByRole('link',{name:role,exact:true}).isVisible());
+  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false);
+  await page.getByLabel('Demo options',{exact:true}).click();
+  await page.getByLabel('Demo student',{exact:true}).waitFor({state:'visible'});
+  const menu=await page.locator('.demo-popover').boundingBox();assert(menu.x>=0&&menu.x+menu.width<=width);
+  await page.getByLabel('Demo options',{exact:true}).press('Escape');
+  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false);
+  await page.getByLabel('Demo options',{exact:true}).press('Enter');
+  await page.locator('.estimate').click();
+  assert.equal(await page.locator('.demo-menu').evaluate(el=>el.open),false,'Clicking outside closes the dropdown');
+ }
+ await page.getByLabel('Demo options',{exact:true}).click();
+ await page.screenshot({path:'/private/tmp/verity-demo-dropdown-mobile.png',fullPage:true});
+ await page.getByLabel('Demo student',{exact:true}).selectOption('demo-two');
+ await page.locator('[data-action="latest"]').waitFor();
+ assert.equal(await page.evaluate(()=>sessionStorage.getItem('verity-demo-student')),'demo-two');
+ assert(await page.locator('.demo-perspectives').getByRole('link',{name:'TA',exact:true}).isVisible());
  assert.deepEqual(errors,[]);
  console.log('Annotation browser passed: persistent hints, exact circles, connected lines, measured non-overlapping boxes, zoom, page filtering, unknown locations, and mobile scrolling.');
 }catch(error){if(page)await page.screenshot({path:'/private/tmp/verity-annotations-failure.png',fullPage:true});throw error;}

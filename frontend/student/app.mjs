@@ -314,6 +314,13 @@ document.addEventListener('dragover',event=>{event.preventDefault();$('#drop-zon
 document.addEventListener('dragleave',event=>{if(!event.relatedTarget)$('#drop-zone')?.classList.remove('dragging');});
 document.addEventListener('drop',event=>{event.preventDefault();$('#drop-zone')?.classList.remove('dragging');if(state.busy||state.view!=='upload')return;if(event.dataTransfer.files.length!==1){state.error='Choose one PDF containing all your answers.';render();return;}loadFile(event.dataTransfer.files[0]);});
 let resizeTimer;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(state.view==='review'){drawEpoch++;drawPage();}},160);});
+// Public examples on the classroom host keep the same perspective navigation.
+if(!connected&&location.pathname.startsWith('/student-assets/')){
+ try{
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/connected/shared.css';document.head.append(sheet);
+  const {addDemoNavigation}=await import('../connected/client.mjs');await addDemoNavigation();
+ }catch{ /* A standalone example remains usable if the classroom is unavailable. */ }
+}
 if(connected){
  $('#app').textContent='Connecting to your course…';
  try{await requireRole('student');addSignOut();await syncStudent(true);setInterval(syncStudent,1500);state.loaded=true;}
