@@ -1,0 +1,242 @@
+{
+  "studentId": "s08",
+  "name": "Hiro Tanaka",
+  "model": "gpt-6-astra",
+  "elapsedSeconds": 74.86,
+  "usage": {
+    "input_tokens": 67711,
+    "input_tokens_details": {
+      "cache_write_tokens": 67708,
+      "cached_tokens": 0
+    },
+    "output_tokens": 4179,
+    "output_tokens_details": {
+      "reasoning_tokens": 3012
+    },
+    "total_tokens": 71890
+  },
+  "score": 38.5,
+  "maxScore": 40,
+  "at": "2026-09-12T06:16:36.369978+00:00",
+  "rawResponseSha256": "660c4d6ea29f579413ed3d480f651de7da1e16b35564f2473e0e51bd318149a0",
+  "inputs": [
+    {
+      "path": "01_assignment/Homework 1 Blank.pdf",
+      "sha256": "148aebc44060d40d0ec1d3d294896de87936bc2533ea50ffbeb36be5c15fea64"
+    },
+    {
+      "path": "02_professor_answer_key/Grading Guidelines.pdf",
+      "sha256": "154d251802c1be3ba2c8c110981ed50073534ea6399e3bc1afd04b672a66fc44"
+    },
+    {
+      "path": "02_professor_answer_key/Homework 1 Solutions.pdf",
+      "sha256": "ff4d3ea9fd557e154163e8ab9902209e48f05946ee04c9590f045b94c0f31fb4"
+    },
+    {
+      "path": "02_professor_answer_key/Professor Persona.pdf",
+      "sha256": "5964311f6ba6bf709208a8e33720c25b9e2024c9136c58ec59afe1d6f711273f"
+    },
+    {
+      "path": "03_graded_past_submissions/s06_Farid_Haddad/graded_submission.pdf",
+      "sha256": "305ed54178584e30350b28082a84dac5e8f4ec701b2e63dea5e1fcfad3aa3e1f"
+    },
+    {
+      "path": "03_graded_past_submissions/s09_Isabel_Moreau/graded_submission.pdf",
+      "sha256": "9b2cd9e7ea5a2081230f5d2a28429262e47eca65efb62f631c2dcbfd5dd041e9"
+    },
+    {
+      "path": "03_graded_past_submissions/s10_Jamal_Carter/graded_submission.pdf",
+      "sha256": "28ff6fd0107bc480e7f258b9dbccf34aa7c8418a6bbc9bfa534d42c5d4b201e5"
+    },
+    {
+      "path": "03_graded_past_submissions/s21_Uriel_Benitez/graded_submission.pdf",
+      "sha256": "3d829fe175a9b7584c687f03812942422e7826fc28909b9904ff4c7bdb65b4a9"
+    },
+    {
+      "path": "03_graded_past_submissions/s22_Victoria_Lam/graded_submission.pdf",
+      "sha256": "8badc223ca9309e5b91825eea864b64570a1f3f322499b25a380704304ebf49f"
+    },
+    {
+      "path": "03_graded_past_submissions/s24_Ximena_Ortiz/graded_submission.pdf",
+      "sha256": "c66c89d5d97cb413f3a4f6a2afe319e13f9377bd417bcad5d5fc2b44fd15f37e"
+    },
+    {
+      "path": "03_graded_past_submissions/s25_Yusuf_Demir/graded_submission.pdf",
+      "sha256": "b55900427685884be221b950e80b0414ec7a9ac2173804ea9eeb70c1a600062d"
+    },
+    {
+      "path": "03_graded_past_submissions/s27_Arjun_Mehta/graded_submission.pdf",
+      "sha256": "0cdc7155bab5767c30303c05a45733d9907537e6fac0f38d600c4bdfbbd186e0"
+    },
+    {
+      "path": "03_graded_past_submissions/s28_Bianca_Russo/graded_submission.pdf",
+      "sha256": "35c71519b3453043259230fd0d558578227e35c7475242fd866369e2b4866656"
+    },
+    {
+      "path": "03_graded_past_submissions/s29_Caleb_Thornton/graded_submission.pdf",
+      "sha256": "fe156ed5ce86ea81c7efc83ead371e4533f8fa1659873cc10960f5a61c2857c2"
+    },
+    {
+      "path": "04_ungraded_new_submissions/s08_Hiro_Tanaka/submission.pdf",
+      "sha256": "9b5d7cb0c77770293aae137651155216343ad4829d949e9ac7adb6c63d516469"
+    }
+  ],
+  "assessment": {
+    "parts": [
+      {
+        "part_id": "1a",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "1b",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "1c",
+        "points": 3,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2a",
+        "points": 1,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2b",
+        "points": 1,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2c",
+        "points": 1,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2d",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2e",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2f",
+        "points": 1,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "3a",
+        "points": 2,
+        "category": "missing-work",
+        "staff_reason": "−1 (E2/S1): The elimination and back substitution are correct, but the row-operation labels are absent. Apply this deduction once for Problem 3.",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "3b",
+        "points": 3,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4a",
+        "points": 3,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4b",
+        "points": 1,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4c",
+        "points": 4,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "5a",
+        "points": 2,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "5b",
+        "points": 0.5,
+        "category": "missing-work",
+        "staff_reason": "−0.5 (E7, Problem 5b): Rank 2 is stated without explaining that the RREF has two pivots or two nonzero rows.",
+        "page_index": 5,
+        "evidence_quote": "rank(A) = 2"
+      },
+      {
+        "part_id": "5c",
+        "points": 4,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "6a",
+        "points": 4,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "6b",
+        "points": 4,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      }
+    ],
+    "staff_summary": "Provisional assessment; all eight mapped page images reviewed. Problem subtotals: 1: 5/5; 2: 6/6; 3: 5/6; 4: 8/8; 5: 6.5/7; 6: 8/8. Deductions are for unlabeled row operations in 3a and missing rank justification in 5b. Crossed-out false starts in 2a, 4a, and 6b were excluded. Pending human review."
+  },
+  "recorded": true
+}

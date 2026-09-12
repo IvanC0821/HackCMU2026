@@ -1,0 +1,13 @@
+student_id,name,set,professor_total,max
+s06,Farid Haddad,graded,35,40
+s09,Isabel Moreau,graded,29,40
+s10,Jamal Carter,graded,30.5,40
+s21,Uriel Benitez,graded,21.5,40
+s22,Victoria Lam,graded,33.5,40
+s24,Ximena Ortiz,graded,33,40
+s25,Yusuf Demir,graded,40,40
+s27,Arjun Mehta,graded,31.5,40
+s28,Bianca Russo,graded,34,40
+s29,Caleb Thornton,graded,31,40
+s08,Hiro Tanaka,ungraded (key hidden in 05),38.5,40
+s23,Wesley Park,ungraded (key hidden in 05),37,40

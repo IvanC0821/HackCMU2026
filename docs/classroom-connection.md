@@ -1,0 +1,107 @@
+---
+date: 2026-09-12
+description: Connected classroom integration contract
+tags: [integration, contract]
+---
+
+# Connected classroom contract
+
+## PDF-local feedback amendment (Ivan, 2026-09-12)
+
+Feedback is attached to actual student-PDF geometry, with a clickable yellow icon,
+highlighted text/work region and a short on-paper explanation. `anchor.boxes` uses
+normalized coordinates in the displayed (rotation-applied) crop box. `anchor.kind`
+distinguishes a verified `line` quote from surrounding `work` or a `part` region;
+missing steps are never presented as an incorrect quoted line. Quotes may be found
+on any mapped page, but ambiguous matches are not guessed. Header/part detection
+provides a contextual fallback only when that structure exists in the PDF.
+Unlocatable/image-only work remains explicitly unlocated, pending OCR/staff help.
+The student projection exposes only validated geometry and allowlisted feedback
+codes, never staff explanations, expected answers, evidence quotes or hidden keys.
+Refresh annotations without regrading, modifying source PDFs, or changing scores.
+
+## Dataset pilot amendment (Ivan, 2026-09-12)
+
+The labeled `demo-data` files may replace the active local classroom after archiving
+its previous state. The importer stores all 26 PDFs, imports ten professor-reviewed
+records, and maps two new student submissions from their supplied page maps. An
+explicit CLI `--grade-new` runs two paid assessments; public demo uploads do not
+automatically incur API charges. Only assignment/professor PDFs, ten graded-example
+PDFs, and the target submission enter the grader. Hidden keys, README spoilers, and
+the summary CSV are excluded; comparison happens after raw responses are saved.
+AI scores remain provisional and server-calculated from published half-point bands.
+Open demo exposes a synthetic-student selector using `X-Verity-Demo-Student`, limited
+to the imported roster. Private mode still derives identity from authentication.
+
+Related: [[contracts]] (the existing core API contract).
+
+## Open-demo amendment (Ivan, 2026-09-12)
+
+The latest request explicitly allows every demo visitor to switch between student
+and staff without an access code. The local launcher now enables open demo mode by
+default; `--private` retains the original authenticated mode. In open mode, a
+`X-Verity-Demo-Role: student|teacher` header selects one of the two provisioned demo
+identities for classroom routes. This is deliberately **not an access boundary**:
+any visitor may select teacher, view references and change reviews. Dummy data only.
+
+GET `/classroom/demo` reports whether open mode is enabled, without returning tokens.
+The root opens the student workspace directly in open mode. Both workspaces provide
+Student / TA–Professor navigation. Native grading API authentication is unchanged;
+the bypass is confined to the connected classroom app and explicit launcher mode.
+Without that launcher flag, role headers grant no access. No database reset occurs.
+
+The original private-mode contract follows.
+
+Approved scope: Ivan, 2026-09-12, combine student and teacher into one application,
+enforce private staff access, test the complete flow, then publish an isolated GitHub branch.
+
+The connected launcher uses the existing Python dependencies, bearer authentication,
+PDF ingestion and private file storage. A revision-checked classroom workspace preserves
+the staff prototype schema without rewriting the independently developed grading API.
+This adapter is deliberately separate from the native assessment/job pipeline.
+
+- Staff GET/PUT `/classroom/workspace`: course membership required; compare-and-swap
+  revision prevents silently overwriting concurrent student uploads or staff changes.
+- Student GET `/classroom/student`: explicit allowlist of published question prompts,
+  maximum points and the authenticated student's own attempt history and scores.
+  Never returns solution PDFs, expected answers, bands, private criteria, staff notes,
+  grading examples, draft content, or another student's work.
+- POST `/classroom/files`: authenticated PDF upload, same validation as core backend.
+- GET `/classroom/files/{id}`: staff within course, own submission, or published blank
+  question document only. No public upload directory or sample solution routes.
+- POST `/classroom/attempts`: authenticated student, owned PDF, current published
+  version and validated zero-based page mapping; immutable revision and idempotency ID.
+- POST `/classroom/attempts/{id}/final`: explicit final hand-in; practice is separate.
+- Reference uploads and student uploads are persisted server-side. Refresh restores
+  records; short polling connects tabs and devices. Tokens are provisioned by the local
+  administrator, never automatically handed out by role selection in a public endpoint.
+
+Arbitrary PDF model grading is not connected by this adapter. New work remains pending
+until staff review. No fixture score is applied to real uploads. Final/estimated scores
+are calculated from published scoring bands; only fixed general error-category text
+is returned to students. Exact-location markers require actual evidence and are not
+fabricated from page assignments.
+
+Run loopback-only via `backend/run_classroom.py`; production SSO, TLS, deployment and
+integration into the native assessment pipeline remain separate work. Source publication
+does not publish the private database, PDFs, or provisioned access codes.
+
+## Rubric drafting
+
+The shared-contract section “Readable rubric drafts” defines instructor-only
+`/classroom/rubric-drafts` POST/GET. Durable draft jobs are isolated from grading
+jobs and the mutable workspace. The model sees only the saved reference list;
+no student roster, submission history, hidden keys or recorded assessments.
+Text and page images preserve layout/graphs, with exact document/page identities.
+An immutable input snapshot plus revision-checked import prevents overwriting a
+concurrent staff edit or student upload. A unique active-course slot and request ID
+protect against duplicate paid jobs. Interrupted jobs expire after 11 minutes and
+need a new explicit request; they are never automatically retried.
+
+The configured model is unchanged. Rubric generation uses Structured Outputs,
+30,000 maximum output tokens, a 300-second request timeout and zero provider retries;
+other provider paths retain their original settings. Shape is not a guarantee of
+grading correctness. See [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Existing `RubricSpec` fields hold readable requirements, bands, sources, pattern
+definitions/exclusions and proposed policies. Full worked-solution hint ladders are
+excluded from this generation request. Staff must inspect the draft before publishing.

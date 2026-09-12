@@ -1,0 +1,37 @@
+{
+  "student_id": "s22",
+  "name": "Victoria Lam",
+  "grader": "Prof. R. Castellano",
+  "total": 33.5,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 0.5, "max": 1, "comment": "-0.5 E1 No work shown; 2u - v and the dot product are never computed."},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 1.5, "max": 3, "comment": "-1.5 E1 No work: the dot product, both norms, and the cosine formula are all missing."},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 0.5, "max": 1, "comment": "-0.5 S7 vA is undefined; matrix multiplication is not commutative, and v has 1 column against the 3 rows of A."},
+    "2c": {"points": 1, "max": 1, "comment": "✓"},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 3, "max": 3, "comment": "✓"},
+    "3b": {"points": 3, "max": 3, "comment": "✓"},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 3, "max": 4, "comment": "-1 E2 The elimination is a chain of arrows; no row operation is labeled."},
+    "5a": {"points": 1, "max": 2, "comment": "-1 E2 Correct RREF, but no row operation is labeled."},
+    "5b": {"points": 1, "max": 1, "comment": "✓"},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 2, "max": 4, "comment": "-2 E7 A zero entry and a count of vectors justify nothing; the dependence needs row reduction or the relation v3 = v2 - 2v1."},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "1a", "points": -0.5, "rule": "E1", "comment": "No work shown; 2u - v and the dot product are never computed."},
+    {"part": "1c", "points": -1.5, "rule": "E1", "comment": "No work: the dot product, both norms, and the cosine formula are all missing."},
+    {"part": "2b", "points": -0.5, "rule": "S7", "comment": "vA is undefined; matrix multiplication is not commutative, and v has 1 column against the 3 rows of A."},
+    {"part": "4c", "points": -1, "rule": "E2", "comment": "The elimination is a chain of arrows; no row operation is labeled."},
+    {"part": "5a", "points": -1, "rule": "E2", "comment": "Correct RREF, but no row operation is labeled."},
+    {"part": "6a", "points": -2, "rule": "E7", "comment": "A zero entry and a count of vectors justify nothing; the dependence needs row reduction or the relation v3 = v2 - 2v1."}
+  ],
+  "overall_comment": "Label every row operation: the unlabeled chains in 4(c) and 5(a) cost 2 points on arithmetic that was otherwise correct. In 1(c) and 6(a) you assert a result without the computation behind it, and a zero entry is not an argument for dependence. In 2(b), matrix multiplication is not commutative; vA is undefined because v has 1 column and A has 3 rows."
+}

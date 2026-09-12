@@ -74,7 +74,7 @@ Findings: criterion, approved pattern or null, category, impact, evidence IDs,
 optional root cause, page anchor, provenance, instructor confirmation and status.
 An anchor has `document_revision_id`, `page_index`, `x`, `y`, `units: pt`,
 `coordinate_space: pymupdf_unrotated`, and target granularity. Native regions have
-character geometry; OCR regions retain polygons, confidence and transforms.
+character geometry; OCR regions retain provider boxes, coordinate format and transforms.
 Model-selected region IDs determine pins in code. A line creates a step anchor;
 unlocalized findings remain `pending_anchor`. No-AI manual grading supports scans.
 
@@ -113,7 +113,8 @@ Return `as_of`, rubric/taxonomy version and attempt policy.
 | EXTERNAL_AI_ENABLED | false; global external-call switch |
 | OPENAI_API_KEY, OPENAI_MODEL | Server key; configurable model, gpt-6-astra default |
 | OPENAI_REASONING_EFFORT | high |
-| MATHPIX_APP_ID, MATHPIX_APP_KEY | Optional handwriting OCR credentials |
+| ZAI_API_KEY | Optional hosted GLM-OCR credential; server only |
+| GLM_OCR_BBOX_FORMAT | `pixels` (default, confirmed by live hosted API; provider page dimensions required) or `normalized` (0–1); never auto-detected |
 | JWT_ISSUER, JWT_AUDIENCE, JWT_JWKS_URL | Configure all three for external RS256 auth |
 | LOCAL_TOKENS_ENABLED | true; disable after external auth configuration |
 | MAX_PDF_PAGES, MAX_UPLOAD_BYTES | 10, 20971520 |
@@ -172,3 +173,88 @@ labeled fixed demonstration, not AI grading. It immediately issues the approved
 hint, keeps the score hidden, and offers a separate explicit teacher-finalization
 button. Tokens and IDs are filled in memory; raw request controls are collapsed
 under Advanced. Static hosting still supports the existing manual console.
+
+## Hosted handwriting OCR (GLM-OCR)
+
+OCR uses Z.ai `POST https://api.z.ai/api/paas/v4/layout_parsing` with model
+`glm-ocr` and server-side `ZAI_API_KEY` Bearer authentication. The worker sends
+one unrotated PNG page per request as a base64 data URI (10 MiB maximum), with
+crop-image and visualization output disabled. No public document URL is needed.
+Both external-AI opt-ins remain required; `ocr_enabled` still controls assignment
+OCR. No Mathpix credentials or automatic paid fallback are used for new OCR.
+
+`layout_details` must contain exactly one page. Nonempty text/formula/table
+blocks become `source: glm-ocr`, `granularity: step` regions with original content
+and boxes. These are block/step anchors, never symbol-accurate pins. Image URLs are
+not treated as student text. Missing layout, malformed/empty text output, invalid
+boxes, or inconsistent page geometry fail closed before any regions are added.
+Blank pages may return an empty layout with empty Markdown. Confidence is null
+when the provider supplies none. Provider coordinate format, label, model, token
+usage and page transforms are retained as evidence without logging raw responses.
+
+Z.ai's API reference specifies normalized 0–1 boxes, but a live hosted request
+on 2026-09-12 returned pixel boxes. The default is therefore `pixels`.
+`GLM_OCR_BBOX_FORMAT` selects the convention explicitly. Pixel mode
+requires returned page dimensions; aspect-ratio changes and reported rotations
+are rejected. Coordinates are mapped through the actual rendered PNG dimensions
+and the saved inverse transform, including render rounding at page boundaries.
+Sources: https://docs.z.ai/api-reference/tools/layout-parsing and
+https://github.com/zai-org/GLM-OCR/blob/main/glmocr/api.py.
+
+Completed document OCR is reused, including historical provider records; no
+existing evidence is rewritten. Failed jobs roll back OCR and can be explicitly
+retried (which can incur another charge); there are no automatic HTTP retries.
+Safe job errors include `glm_ocr_not_configured`, `ocr_image_too_large`,
+`ocr_invalid_response`, `ocr_invalid_geometry`, and `ocr_request_failed`.
+
+## Readable rubric drafts (connected classroom, 2026-09-12)
+
+`RubricSpec` keeps its existing shape. Requirements and band descriptions are
+complete TA-facing explanations, not abbreviated labels. Criteria retain source
+pages and concept IDs; pattern definitions and exclusions remain staff-only.
+Generation separates required presentation/graphs from optional style, distinguishes
+minor slips from conceptual errors, and explains carried-through-error treatment.
+Hints are prepared separately; drafting does not generate worked-solution ladders.
+Native assignments accept up to 30 reference PDFs. Drafting accepts at most 160
+reference pages / 40 MiB of rendered images and fails before a model call if exceeded.
+All included pages have text, an image, and explicit document/page identity.
+
+Connected routes (course instructor only, including the explicit open-demo teacher):
+- `POST /classroom/rubric-drafts`: `{expectedRevision, consent: true, requestId}`.
+  Requires server `EXTERNAL_AI_ENABLED` and configured credentials. Uses only saved
+  blank/solution/past-example references, never student attempts or hidden keys.
+  Returns a persistent `{id, status, revision, spec, coverage, error}` draft job (202).
+  Reusing a request ID returns the same job; only one running job per course.
+- `GET /classroom/rubric-drafts/{id}`: same staff-only shape; polling never calls AI.
+  A completed spec is imported only if the workspace revision still matches. Existing
+  published standards, submissions, and grades are unchanged. Finalizing is separate.
+
+The local launcher is AI-off by default; `--allow-ai` enables explicit, consented
+rubric requests. One provider request per job, no automatic paid retries. Jobs
+interrupted by a process restart remain marked running and are not resubmitted.
+## Staff solution crops and rubric authoring
+
+The staff standards view uses a PDF canvas on the left and question/rubric or
+reference-material tabs on the right. It uses the same PDF.js distribution as the
+student viewer. Questions may have an additive `solutionCrops` array (absent means
+none), persisted through the existing classroom workspace and local IndexedDB.
+Each crop is `{id, documentId, page, rect: [x, y, width, height], label}`. Page is
+one-based; rect coordinates are fractions of the displayed PDF page (including
+its intrinsic rotation), bounded to [0, 1], with positive width and height.
+Crops attach to the solution document's stable workspace ID, not its temporary
+blob URL. A question can have multiple regions across different pages.
+
+Draft crops are editable and explicitly saved with the draft; finalization copies
+them into the immutable standard version. Changing a solution PDF does not move
+old crops automatically: staff must review/reselect or explicitly remap them to
+the replacement PDF and its pages before finalization. Normalized coordinates
+handle zoom and different page dimensions; they do not infer content reflow.
+Student page mappings remain independent. Cropped solution previews are staff-only
+and shown beside the question during TA review, using that review's standard.
+The student assignment/feedback whitelist must never include crops or solutions.
+
+Implementation scope includes staff model/view/controller modules, their browser
+preview builder and tests, plus the classroom static-asset allowlist and privacy
+regression test. The connected persistence adapter uses the workspace PUT response
+as its saved revision, avoiding a separate read that can race rapid edits.
+No new API endpoint or database migration is required.

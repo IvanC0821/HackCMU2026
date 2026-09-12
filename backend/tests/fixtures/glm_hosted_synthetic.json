@@ -1,0 +1,63 @@
+{
+  "layout_details": [
+    [
+      {
+        "bbox_2d": [
+          101,
+          135,
+          407,
+          156
+        ],
+        "content": "Prove by induction: 1 + ... + n = n(n+1)/2.",
+        "height": 1188,
+        "index": 0,
+        "label": "text",
+        "native_label": "text",
+        "width": 918
+      },
+      {
+        "bbox_2d": [
+          101,
+          180,
+          259,
+          200
+        ],
+        "content": "Base case n=1: 1=1.",
+        "height": 1188,
+        "index": 1,
+        "label": "text",
+        "native_label": "text",
+        "width": 918
+      },
+      {
+        "bbox_2d": [
+          100,
+          224,
+          458,
+          246
+        ],
+        "content": "Assume the result for k+1. Thus it holds for k+1.",
+        "height": 1188,
+        "index": 2,
+        "label": "text",
+        "native_label": "text",
+        "width": 918
+      }
+    ]
+  ],
+  "data_info": {
+    "num_pages": 1,
+    "pages": [
+      {
+        "height": 1188,
+        "width": 918
+      }
+    ]
+  },
+  "md_results": "Prove by induction: 1 + ... + n = n(n+1)/2.\n\nBase case n=1: 1=1.\n\nAssume the result for k+1. Thus it holds for k+1.",
+  "usage": {
+    "completion_tokens": 51,
+    "prompt_tokens": 110,
+    "total_tokens": 161
+  }
+}

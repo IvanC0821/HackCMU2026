@@ -1,0 +1,39 @@
+{
+  "student_id": "s29",
+  "name": "Caleb Thornton",
+  "grader": "Prof. R. Castellano",
+  "total": 31,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 1, "max": 1, "comment": "✓"},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 3, "max": 3, "comment": "✓"},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 0.5, "max": 1, "comment": "-0.5 S7 vA is undefined because v has 1 column and A has 3 rows, and matrix multiplication is not commutative, so Av written sideways is not vA."},
+    "2c": {"points": 0.5, "max": 1, "comment": "-0.5 E5 Aw is called undefined with no dimension reason, which must state that A has 3 columns and w has 1 row."},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 2, "max": 3, "comment": "-1 E2 Row operations are not labeled, so write R2 → R2 - 2R1 beside each step the way you did in (b)."},
+    "3b": {"points": 3, "max": 3, "comment": "✓"},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 3, "max": 4, "comment": "-1 E2 Row operations are not labeled, so label every step, starting with R1 → R1 - 2R3."},
+    "5a": {"points": 1, "max": 2, "comment": "-1 E8 Arithmetic slip in R2 → R2 - 2R1, whose second entry is 4 - 2(2) = 0, so that row is [0 0 1] and the RREF is [1 2 0; 0 0 1; 0 0 0], not I."},
+    "5b": {"points": 0, "max": 1, "comment": "-1 S3 The slip in (a) changed the conclusion, since the correct RREF has pivots only in columns 1 and 3, so rank(A) = 2, not 3."},
+    "5c": {"points": 0, "max": 4, "comment": "-2 S7 Exactly one solution is impossible because column 2 is never a pivot column, so x2 is free whenever the system is consistent, and claiming uniqueness earns 0 for that piece; -2 S3 Zero solutions is possible when b3 ≠ b1 + b2 and infinitely many is possible when b3 = b1 + b2, so both cases you ruled out are lost."},
+    "6a": {"points": 4, "max": 4, "comment": "✓"},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "2b", "points": -0.5, "rule": "S7", "comment": "vA is undefined because v has 1 column and A has 3 rows, and matrix multiplication is not commutative, so Av written sideways is not vA."},
+    {"part": "2c", "points": -0.5, "rule": "E5", "comment": "Aw is called undefined with no dimension reason, which must state that A has 3 columns and w has 1 row."},
+    {"part": "3a", "points": -1, "rule": "E2", "comment": "Row operations are not labeled, so write R2 → R2 - 2R1 beside each step the way you did in (b)."},
+    {"part": "4c", "points": -1, "rule": "E2", "comment": "Row operations are not labeled, so label every step, starting with R1 → R1 - 2R3."},
+    {"part": "5a", "points": -1, "rule": "E8", "comment": "Arithmetic slip in R2 → R2 - 2R1, whose second entry is 4 - 2(2) = 0, so that row is [0 0 1] and the RREF is [1 2 0; 0 0 1; 0 0 0], not I."},
+    {"part": "5b", "points": -1, "rule": "S3", "comment": "The slip in (a) changed the conclusion, since the correct RREF has pivots only in columns 1 and 3, so rank(A) = 2, not 3."},
+    {"part": "5c", "points": -2, "rule": "S7", "comment": "Exactly one solution is impossible because column 2 is never a pivot column, so x2 is free whenever the system is consistent, and claiming uniqueness earns 0 for that piece."},
+    {"part": "5c", "points": -2, "rule": "S3", "comment": "Zero solutions is possible when b3 ≠ b1 + b2 and infinitely many is possible when b3 = b1 + b2, so both cases you ruled out are lost."}
+  ],
+  "overall_comment": "Label every row operation: 3(a) and 4(c) carry none, and that costs a point each. Matrix multiplication is not commutative, so vA is undefined rather than Av on its side. Problem 5 turns on one entry: R2 → R2 - 2R1 gives [0 0 1], and carrying [0 1 1] forward produced rank 3 and a unique solution for every b, which reverses all three cases in (c)."
+}

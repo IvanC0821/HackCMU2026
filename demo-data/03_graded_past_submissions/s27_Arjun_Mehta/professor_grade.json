@@ -1,0 +1,39 @@
+{
+  "student_id": "s27",
+  "name": "Arjun Mehta",
+  "grader": "Prof. R. Castellano",
+  "total": 31.5,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 0.5, "max": 1, "comment": "-0.5 E1 Bare answer; 2u - v and the expanded dot product are not shown."},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 2, "max": 3, "comment": "-1 E8 Angle rounded to 73°; the problem requires two decimals, θ ≈ 73.40°."},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 0.5, "max": 1, "comment": "-0.5 N6 Final answer is neither boxed nor labeled Final answer."},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 0.5, "max": 1, "comment": "-0.5 E5 Undefined is stated with no dimension reason; B is 2x3, so BB would need 3 = 2."},
+    "3a": {"points": 3, "max": 3, "comment": "✓"},
+    "3b": {"points": 2, "max": 3, "comment": "-1 E4 Free variable named but no parametric form; write [x, y, z]^T = [8, -2, 0]^T + t[7, -3, 1]^T, t ∈ R."},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 3, "max": 4, "comment": "-1 E6 Final answer carries no units; state 40 kg, 40 kg, 20 kg."},
+    "5a": {"points": 2, "max": 2, "comment": "✓"},
+    "5b": {"points": 1, "max": 1, "comment": "✓"},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 2, "max": 4, "comment": "-2 E7 A zero entry in v3 is not a dependence argument; row reduce to two pivots or give v3 = v2 - 2v1."},
+    "6b": {"points": 2, "max": 4, "comment": "-2 E7 Pairwise non-parallel does not prove independence; show three pivots or det = 2 ≠ 0."}
+  },
+  "deductions": [
+    {"part": "1a", "points": -0.5, "rule": "E1", "comment": "Bare answer; 2u - v and the expanded dot product are not shown."},
+    {"part": "1c", "points": -1, "rule": "E8", "comment": "Angle rounded to 73°; the problem requires two decimals, θ ≈ 73.40°."},
+    {"part": "2c", "points": -0.5, "rule": "N6", "comment": "Final answer is neither boxed nor labeled Final answer."},
+    {"part": "2f", "points": -0.5, "rule": "E5", "comment": "Undefined is stated with no dimension reason; B is 2x3, so BB would need 3 = 2."},
+    {"part": "3b", "points": -1, "rule": "E4", "comment": "Free variable named but no parametric form; write [x, y, z]^T = [8, -2, 0]^T + t[7, -3, 1]^T, t ∈ R."},
+    {"part": "4c", "points": -1, "rule": "E6", "comment": "Final answer carries no units; state 40 kg, 40 kg, 20 kg."},
+    {"part": "6a", "points": -2, "rule": "E7", "comment": "A zero entry in v3 is not a dependence argument; row reduce to two pivots or give v3 = v2 - 2v1."},
+    {"part": "6b", "points": -2, "rule": "E7", "comment": "Pairwise non-parallel does not prove independence; show three pivots or det = 2 ≠ 0."}
+  ],
+  "overall_comment": "Problems 3, 4, and 5 are computed correctly and every row operation is labeled. Problem 6 costs you four points: a zero entry in v3 and none is a multiple of another are not justifications, and row reduction or an explicit dependence relation is required every time. Show the work in 1(a), round the angle to two decimals, write the general solution parametrically, and give 4(c) in kg."
+}

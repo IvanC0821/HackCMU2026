@@ -1,0 +1,33 @@
+{
+  "student_id": "s08",
+  "name": "Hiro Tanaka",
+  "grader": "Prof. R. Castellano",
+  "total": 38.5,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 1, "max": 1, "comment": "✓"},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 3, "max": 3, "comment": "✓"},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 1, "max": 1, "comment": "✓"},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 2, "max": 3, "comment": "-1 E2 The elimination shows only arrows between matrices, with no row operation labeled."},
+    "3b": {"points": 3, "max": 3, "comment": "✓"},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 4, "max": 4, "comment": "✓"},
+    "5a": {"points": 2, "max": 2, "comment": "✓"},
+    "5b": {"points": 0.5, "max": 1, "comment": "-0.5 E7 Rank 2 is asserted with no reason given, such as the two pivot positions in the RREF."},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 4, "max": 4, "comment": "✓"},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [
+    {"part": "3a", "points": -1, "rule": "E2", "comment": "The elimination shows only arrows between matrices, with no row operation labeled."},
+    {"part": "5b", "points": -0.5, "rule": "E7", "comment": "Rank 2 is asserted with no reason given, such as the two pivot positions in the RREF."}
+  ],
+  "overall_comment": "Every number here is correct, from the angle in 1(c) through the blend masses in 4(c) to both span descriptions in Problem 6. Two things cost you points. In 3(a) you drew arrows instead of labeling the steps as R2 -> R2 - 2R1, which you did correctly in 3(b) and everywhere in Problem 4, and in 5(b) you stated rank 2 without naming the two pivots that produce it."
+}

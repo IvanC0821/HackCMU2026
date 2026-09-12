@@ -109,13 +109,30 @@ to your account. `OPENAI_REASONING_EFFORT` defaults to `high`. No reviewer model
 used. The API uses [Responses structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 with `store: false`; schema validation is not mathematical verification.
 
-For handwriting OCR, configure `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`, then set
-`ocr_enabled: true` on the assignment. Pages retain images even when native text
-exists. [Mathpix line geometry](https://docs.mathpix.com/reference/post-v3-text)
-is mapped through stored transforms; auto-rotation is disabled and
-`improve_mathpix: false` is sent. Both global and assignment permission switches
-are checked before external calls. All pages may be sent to configured providers;
-upload de-identified homework when evaluating with real work.
+For hosted handwriting OCR, add `ZAI_API_KEY` to the root `.env`, set
+`EXTERNAL_AI_ENABLED=true`, and set both `external_ai_allowed: true` and
+`ocr_enabled: true` on the assignment. Restart the API and worker. The adapter uses
+[Z.ai GLM-OCR layout parsing](https://docs.z.ai/api-reference/tools/layout-parsing);
+no local model, GPU, or additional SDK is required. The key stays server-side.
+OpenAI credentials are still needed separately for AI grading and generated hints.
+
+The worker sends one unrotated PNG per page as a base64 data URI, limited to 10 MiB
+per image. No public storage URL is created. Returned text and formula blocks are
+mapped into the existing step-level evidence records. Blocks are not symbol-accurate
+anchors, and confidence is unknown when the provider supplies none.
+`GLM_OCR_BBOX_FORMAT=pixels` follows the hosted API response verified on 2026-09-12.
+Pixel mode requires provider page dimensions. The reference documentation instead
+describes 0–1 coordinates; `normalized` remains available for that convention.
+No coordinate format is guessed; malformed boxes, rotations, missing layout or
+inconsistent dimensions fail safely. Token usage is copied into each region's
+evidence for inspection; it must not be summed across regions as a billing total.
+
+Both global and assignment opt-ins are checked before external calls. Original
+PDFs stay unchanged. Crop-image and visualization outputs are disabled; this does
+not promise provider zero retention. Completed OCR (including historical evidence)
+is reused. No automatic HTTP retries or alternate paid provider calls occur;
+explicitly retrying a failed job can incur new OCR charges. The guided sample
+launcher remains offline and does not call Z.ai.
 
 Approved pattern hints are the default. Optional generated hints require
 `feedback_policy.allow_generated: true`. They are generated from a limited teaching
@@ -133,7 +150,7 @@ explicit document revision). Preview PNGs are rendered unrotated at the stored
 scale. Multiply canonical points by `page_to_image` for those images. For a viewer
 showing the original rotated PDF, apply the stored `rotation_matrix` before its
 viewport scaling. Preserve aspect ratio. Do not guess coordinates from browser width.
-Native evidence includes character IDs; OCR currently gives step/line geometry.
+Native evidence includes character IDs; OCR currently gives block/step geometry.
 A step pin is never represented as symbol-accurate. Instructor-supplied pins are
 bounds-checked. Missing automatic evidence leaves `pending_anchor`.
 

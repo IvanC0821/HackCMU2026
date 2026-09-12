@@ -2132,7 +2132,7 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 10,
+            "maxItems": 30,
             "title": "Material Document Ids"
           },
           "external_ai_allowed": {

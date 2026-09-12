@@ -1,0 +1,242 @@
+{
+  "studentId": "s23",
+  "name": "Wesley Park",
+  "model": "gpt-6-astra",
+  "elapsedSeconds": 92.63,
+  "usage": {
+    "input_tokens": 66448,
+    "input_tokens_details": {
+      "cache_write_tokens": 66445,
+      "cached_tokens": 0
+    },
+    "output_tokens": 4925,
+    "output_tokens_details": {
+      "reasoning_tokens": 3601
+    },
+    "total_tokens": 71373
+  },
+  "score": 37,
+  "maxScore": 40,
+  "at": "2026-09-12T06:16:54.133974+00:00",
+  "rawResponseSha256": "a4a9cab736d2c6f40514dcfe7ca2ae26433523bb5bb20573d33a10ecd40ed49c",
+  "inputs": [
+    {
+      "path": "01_assignment/Homework 1 Blank.pdf",
+      "sha256": "148aebc44060d40d0ec1d3d294896de87936bc2533ea50ffbeb36be5c15fea64"
+    },
+    {
+      "path": "02_professor_answer_key/Grading Guidelines.pdf",
+      "sha256": "154d251802c1be3ba2c8c110981ed50073534ea6399e3bc1afd04b672a66fc44"
+    },
+    {
+      "path": "02_professor_answer_key/Homework 1 Solutions.pdf",
+      "sha256": "ff4d3ea9fd557e154163e8ab9902209e48f05946ee04c9590f045b94c0f31fb4"
+    },
+    {
+      "path": "02_professor_answer_key/Professor Persona.pdf",
+      "sha256": "5964311f6ba6bf709208a8e33720c25b9e2024c9136c58ec59afe1d6f711273f"
+    },
+    {
+      "path": "03_graded_past_submissions/s06_Farid_Haddad/graded_submission.pdf",
+      "sha256": "305ed54178584e30350b28082a84dac5e8f4ec701b2e63dea5e1fcfad3aa3e1f"
+    },
+    {
+      "path": "03_graded_past_submissions/s09_Isabel_Moreau/graded_submission.pdf",
+      "sha256": "9b2cd9e7ea5a2081230f5d2a28429262e47eca65efb62f631c2dcbfd5dd041e9"
+    },
+    {
+      "path": "03_graded_past_submissions/s10_Jamal_Carter/graded_submission.pdf",
+      "sha256": "28ff6fd0107bc480e7f258b9dbccf34aa7c8418a6bbc9bfa534d42c5d4b201e5"
+    },
+    {
+      "path": "03_graded_past_submissions/s21_Uriel_Benitez/graded_submission.pdf",
+      "sha256": "3d829fe175a9b7584c687f03812942422e7826fc28909b9904ff4c7bdb65b4a9"
+    },
+    {
+      "path": "03_graded_past_submissions/s22_Victoria_Lam/graded_submission.pdf",
+      "sha256": "8badc223ca9309e5b91825eea864b64570a1f3f322499b25a380704304ebf49f"
+    },
+    {
+      "path": "03_graded_past_submissions/s24_Ximena_Ortiz/graded_submission.pdf",
+      "sha256": "c66c89d5d97cb413f3a4f6a2afe319e13f9377bd417bcad5d5fc2b44fd15f37e"
+    },
+    {
+      "path": "03_graded_past_submissions/s25_Yusuf_Demir/graded_submission.pdf",
+      "sha256": "b55900427685884be221b950e80b0414ec7a9ac2173804ea9eeb70c1a600062d"
+    },
+    {
+      "path": "03_graded_past_submissions/s27_Arjun_Mehta/graded_submission.pdf",
+      "sha256": "0cdc7155bab5767c30303c05a45733d9907537e6fac0f38d600c4bdfbbd186e0"
+    },
+    {
+      "path": "03_graded_past_submissions/s28_Bianca_Russo/graded_submission.pdf",
+      "sha256": "35c71519b3453043259230fd0d558578227e35c7475242fd866369e2b4866656"
+    },
+    {
+      "path": "03_graded_past_submissions/s29_Caleb_Thornton/graded_submission.pdf",
+      "sha256": "fe156ed5ce86ea81c7efc83ead371e4533f8fa1659873cc10960f5a61c2857c2"
+    },
+    {
+      "path": "04_ungraded_new_submissions/s23_Wesley_Park/submission.pdf",
+      "sha256": "fd57cb6caa5d8bf981049e8445a298522673c5f813d60bd5201bd5f2cda43676"
+    }
+  ],
+  "assessment": {
+    "parts": [
+      {
+        "part_id": "1a",
+        "points": 0.5,
+        "category": "missing-work",
+        "staff_reason": "-0.5 (E1/S2): Correct bare answer, but neither 2u−v nor the expanded dot product is shown; half-credit cap applies.",
+        "page_index": 0,
+        "evidence_quote": "Final answer: 24"
+      },
+      {
+        "part_id": "1b",
+        "points": 0.5,
+        "category": "logic",
+        "staff_reason": "-0.5 (Problem 1(b)): Uses w instead of (1/2)w, producing the wrong intermediate vector and requested norm. Retain half credit for the correctly executed norm calculation.",
+        "page_index": 0,
+        "evidence_quote": "v + w = [1, 4, -2]^T + [-4, 2, 6]^T = [-3, 6, 4]^T"
+      },
+      {
+        "part_id": "1c",
+        "points": 3,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2a",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2b",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2c",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2d",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2e",
+        "points": 1,
+        "category": "arithmetic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "2f",
+        "points": 0,
+        "category": "logic",
+        "staff_reason": "-1 (Problem 2(f), S7): Matrix squaring means BB, not entrywise squaring. B is 2×3, so BB is undefined because the inner dimensions 3 and 2 do not match.",
+        "page_index": 2,
+        "evidence_quote": "Square each entry of B:"
+      },
+      {
+        "part_id": "3a",
+        "points": 3,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "3b",
+        "points": 3,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4a",
+        "points": 3,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4b",
+        "points": 1,
+        "category": "notation",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "4c",
+        "points": 4,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "5a",
+        "points": 2,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "5b",
+        "points": 1,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "5c",
+        "points": 3,
+        "category": "logic",
+        "staff_reason": "-1 (Problem 5(c), S7): Zero solutions are possible when b3 ≠ b1+b2; A being nonzero does not prevent an inconsistent augmented row. The uniqueness and infinitely-many cases are correctly justified.",
+        "page_index": 5,
+        "evidence_quote": "0 solutions: impossible, because A is not the zero matrix"
+      },
+      {
+        "part_id": "6a",
+        "points": 4,
+        "category": "logic",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      },
+      {
+        "part_id": "6b",
+        "points": 4,
+        "category": "method",
+        "staff_reason": "✓",
+        "page_index": null,
+        "evidence_quote": null
+      }
+    ],
+    "staff_summary": "Provisional assessment after reviewing all seven mapped page images. Problem subtotals: P1 4/5; P2 5/6; P3 6/6; P4 8/8; P5 6/7; P6 8/8. Deductions concern missing computation in 1(a), the omitted factor in 1(b), entrywise squaring in 2(f), and the incorrect zero-solution claim in 5(c). All required elimination steps are labeled. The determinant method in 6(b) is accepted under E9."
+  },
+  "recorded": true
+}

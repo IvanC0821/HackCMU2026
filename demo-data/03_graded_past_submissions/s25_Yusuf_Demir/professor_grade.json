@@ -1,0 +1,30 @@
+{
+  "student_id": "s25",
+  "name": "Yusuf Demir",
+  "grader": "Prof. R. Castellano",
+  "total": 40,
+  "max": 40,
+  "parts": {
+    "1a": {"points": 1, "max": 1, "comment": "✓"},
+    "1b": {"points": 1, "max": 1, "comment": "✓"},
+    "1c": {"points": 3, "max": 3, "comment": "✓"},
+    "2a": {"points": 1, "max": 1, "comment": "✓"},
+    "2b": {"points": 1, "max": 1, "comment": "✓"},
+    "2c": {"points": 1, "max": 1, "comment": "✓"},
+    "2d": {"points": 1, "max": 1, "comment": "✓"},
+    "2e": {"points": 1, "max": 1, "comment": "✓"},
+    "2f": {"points": 1, "max": 1, "comment": "✓"},
+    "3a": {"points": 3, "max": 3, "comment": "✓"},
+    "3b": {"points": 3, "max": 3, "comment": "✓"},
+    "4a": {"points": 3, "max": 3, "comment": "✓"},
+    "4b": {"points": 1, "max": 1, "comment": "✓"},
+    "4c": {"points": 4, "max": 4, "comment": "✓"},
+    "5a": {"points": 2, "max": 2, "comment": "✓"},
+    "5b": {"points": 1, "max": 1, "comment": "✓"},
+    "5c": {"points": 4, "max": 4, "comment": "✓"},
+    "6a": {"points": 4, "max": 4, "comment": "✓"},
+    "6b": {"points": 4, "max": 4, "comment": "✓"}
+  },
+  "deductions": [],
+  "overall_comment": "40/40. Every row operation is labeled, every claim about rank, solution count, and independence carries a justification, and Problem 4 keeps its units from the variable definitions through to the answer. One note, no deduction: N5 puts the row operation to the left of or above the matrix it produces; yours sit underneath, which is labeled but harder to follow."
+}

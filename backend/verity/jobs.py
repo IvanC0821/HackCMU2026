@@ -141,7 +141,11 @@ def process(db, job):
     if job.kind == "rubric_draft":
         assignment = db.get(Assignment, job.payload["assignment_id"])
         spec = providers.draft_rubric(db, assignment, job.payload["instructions"])
-        return create_rubric(db, assignment, spec, job.actor_id, "ai", providers.provenance()).id
+        from .rubric_drafting import PROMPT_VERSION as rubric_prompt
+
+        return create_rubric(
+            db, assignment, spec, job.actor_id, "ai", providers.provenance(rubric_prompt)
+        ).id
     if job.kind == "feedback":
         from .models import Assessment
 

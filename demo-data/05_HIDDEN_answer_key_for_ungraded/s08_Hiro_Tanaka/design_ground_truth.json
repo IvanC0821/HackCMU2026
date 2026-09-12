@@ -1,0 +1,151 @@
+{
+ "student_id": "s08",
+ "name": "Hiro Tanaka",
+ "profile": "presentation",
+ "expected_total": 38.5,
+ "max_total": 40,
+ "expected_percent": 96.2,
+ "per_question": {
+  "Q1": {
+   "expected": 5,
+   "max": 5
+  },
+  "Q2": {
+   "expected": 6,
+   "max": 6
+  },
+  "Q3": {
+   "expected": 5,
+   "max": 6
+  },
+  "Q4": {
+   "expected": 8,
+   "max": 8
+  },
+  "Q5": {
+   "expected": 6.5,
+   "max": 7
+  },
+  "Q6": {
+   "expected": 8,
+   "max": 8
+  }
+ },
+ "per_part": {
+  "1a": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "1b": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "1c": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 3,
+   "max": 3
+  },
+  "2a": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "2b": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "2c": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "2d": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "2e": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "2f": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "3a": {
+   "outcome": "no-labels",
+   "category": "missing-work",
+   "points": 2,
+   "max": 3
+  },
+  "3b": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 3,
+   "max": 3
+  },
+  "4a": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 3,
+   "max": 3
+  },
+  "4b": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 1,
+   "max": 1
+  },
+  "4c": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 4,
+   "max": 4
+  },
+  "5a": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 2,
+   "max": 2
+  },
+  "5b": {
+   "outcome": "no-reason",
+   "category": "missing-work",
+   "points": 0.5,
+   "max": 1
+  },
+  "5c": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 4,
+   "max": 4
+  },
+  "6a": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 4,
+   "max": 4
+  },
+  "6b": {
+   "outcome": "correct",
+   "category": "correct",
+   "points": 4,
+   "max": 4
+  }
+ },
+ "_note": "Hidden ground truth for the simulator. Never shown to the grading model."
+}
