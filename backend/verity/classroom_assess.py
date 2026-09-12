@@ -17,6 +17,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict
 
 from . import storage
+from .ai_budget import demo_retries, reserve_ai_call
 from .config import settings
 from .models import Document
 from .pdf_annotations import PDFLocator, feedback_code
@@ -158,7 +159,8 @@ def run_assessment(attempt_id, factory, actor_name="AI grader"):
         "location. This is a provisional assessment; a TA will review it." + STAFF_EXPLANATION_STYLE
     )
     started = time.monotonic()
-    with OpenAI(api_key=cfg.openai_api_key, timeout=300, max_retries=1) as client:
+    reserve_ai_call()
+    with OpenAI(api_key=cfg.openai_api_key, timeout=300, max_retries=demo_retries(1)) as client:
         response = client.responses.parse(
             model=cfg.openai_model,
             reasoning={"effort": cfg.openai_reasoning_effort},

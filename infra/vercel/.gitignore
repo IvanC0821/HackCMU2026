@@ -1,0 +1,5 @@
+bin/
+site/
+runtime/
+.vercel/
+public/examples/*.pdf
