@@ -151,7 +151,8 @@ try{
  assert(!JSON.stringify(pub).includes('solutionCrops'));assert(!JSON.stringify(pub).includes('Final answer and method'));
  const form=new FormData();form.append('file',new Blob([await fixture()],{type:'application/pdf'}),'student.pdf');
  const uploaded=await api('/files',{method:'POST',body:form},'student');
- await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ const attempt=await api('/attempts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),documentId:uploaded.remoteId,fileName:'student.pdf',version:state.versions.at(-1).id,mapping:{q1:[0,1],q2:[1]}})},'student');
+ await api(`/attempts/${attempt.id}/final`,{method:'POST'},'student');
  const after=await api('/workspace'),sid=after.submissions.find(s=>s.attempts.some(a=>a.pdf.remoteId===uploaded.remoteId)).id;
  await page.goto(`${origin}/teacher/#/homework/1/review/${sid}`);
  await page.reload();

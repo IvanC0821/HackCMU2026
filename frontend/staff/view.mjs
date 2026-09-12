@@ -2,6 +2,7 @@ import {renderRubricStudio, solutionPreviews} from './rubric-studio.mjs';
 import {activeRubric, analytics, total, latestFor, scoreAttempt, scoreQuestion} from './model.mjs';
 import {renderCaseStudent} from './case-view.mjs';
 import {renderAssessmentExplanation} from '../connected/review-explanation.mjs';
+import {renderGrade, renderTeaching} from './grading-view.mjs';
 export const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const e = escapeHTML;
 const btn = (action, label, attrs = '', primary = false) => `<button type="button" class="btn${primary ? ' primary' : ''}" data-action="${action}" ${attrs}>${label}</button>`;
@@ -11,6 +12,8 @@ const selected = (a, b) => a === b ? 'selected' : '';
 const fmt = date => date ? new Date(date).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}) : 'Not yet saved';
 const icon = name => `<svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${({book: '<path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4z"/><path d="M13 7a3 3 0 0 1 3-3h4v15h-4a4 4 0 0 0-3 2"/>', grid: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>', arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>', file: '<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6"/>', chart: '<path d="M4 3v17h17M7 15l4-5 4 3 5-8"/>', check: '<path d="m5 12 4 4L19 6"/>'})[name] || ''}</svg>`;
 export function routeFrom(hash) {
+  if (/\/grade(?:\/|$)/.test(hash)) return 'grade';
+  if (hash.endsWith('/teaching')) return 'teaching';
   if (hash.endsWith('/practice')) return 'practice';
   if (/\/review\//.test(hash)) return 'review';
   if (hash.endsWith('/standards')) return 'standards';
@@ -22,11 +25,11 @@ function nav(s, ui) {
   if (ui.connected) return `<aside class="course-rail"><a class="brand" href="#/" aria-label="Verity home"><span class="brand-mark">v</span>verity</a><nav aria-label="Courses"><p class="rail-label">Your classes</p><a class="course-link" href="#/">${icon('book')}<span>${e(s.course)}</span></a><a class="rail-link" href="#/">${icon('grid')}Homework</a></nav><div class="rail-bottom"><p class="save-state">${e(ui.storageStatus)}</p></div></aside>`;
   return `<aside class="course-rail"><a class="brand" href="#/" aria-label="Verity home"><span class="brand-mark">v</span>verity</a><nav aria-label="Courses"><p class="rail-label">Your classes</p><a class="course-link" href="#/" aria-current="page">${icon('book')}<span>Linear Algebra<small>21-254</small></span></a><a class="rail-link" href="#/">${icon('grid')}Homework</a></nav><div class="rail-bottom"><label for="role">Preview role</label><select id="role"><option ${selected(s.role, 'Professor')}>Professor</option><option ${selected(s.role, 'TA')}>TA</option></select><small>Local preview, not authentication</small><p class="save-state ${ui.storageError ? 'warning-text' : ''}">${e(ui.storageStatus || 'Opening local workspace…')}</p>${btn('reset', 'Clear local workspace', '', false)}</div></aside>`;
 }
-function sectionTabs(page) {
-  return `<nav class="section-tabs" aria-label="Homework sections">${[['dashboard', 'Overview', ''], ['standards', 'Rubric', '/standards'], ['submissions', 'Grading', '/submissions']].map(([id, label, path]) => `<a href="#/homework/1${path}" ${page === id || (page === 'review' && id === 'submissions') ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+function sectionTabs(page, ui = {}) {
+  return `<nav class="section-tabs" aria-label="Homework sections">${[['dashboard', 'Overview', ''], ['standards', 'Rubric', '/standards'], [ui.connected ? 'grade' : 'submissions', 'Grading', ui.connected ? '/grade' : '/submissions'], ...(ui.connected ? [['teaching', 'Teaching', '/teaching']] : [])].map(([id, label, path]) => `<a href="#/homework/1${path}" ${page === id || (page === 'review' && id === 'submissions') ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
-function header(s, page, ui) {
-  return `<header class="page-header">${page === 'home' ? '<h1>Homeworks</h1>' : `<nav class="homework-breadcrumb" aria-label="Breadcrumb"><a href="#/">Homeworks</a><span aria-hidden="true">›</span><h1>${e(s.title)}</h1></nav>`}${page === 'standards' ? btn('publish', 'Publish rubric', ui.busy || !s.draft.length || (!s.dirty && s.versions.length) || ui.cropSelection ? 'disabled' : '', true) : ''}</header>${page !== 'home' ? sectionTabs(page) : ''}`;
+function header(s, page, ui = {}) {
+  return `<header class="page-header">${page === 'home' ? '<h1>Homeworks</h1>' : `<nav class="homework-breadcrumb" aria-label="Breadcrumb"><a href="#/">Homeworks</a><span aria-hidden="true">›</span><h1>${e(s.title)}</h1></nav>`}${page === 'standards' ? btn('publish', 'Publish rubric', ui.busy || !s.draft.length || (!s.dirty && s.versions.length) || ui.cropSelection ? 'disabled' : '', true) : ''}</header>${page !== 'home' ? sectionTabs(page, ui) : ''}`;
 }
 function home(s) {
   const stats = analytics(s), rubric = activeRubric(s);
@@ -109,5 +112,5 @@ function activity(s) {
   return `<section class="activity-section"><h2>Grading history</h2><p>Rubric versions and reviewer decisions stay attributable. Local records only.</p>${s.log.length ? `<ol class="activity-list">${s.log.toReversed().map(item => `<li><time datetime="${e(item.at)}">${fmt(item.at)}</time><div><h3>${e(item.action)}</h3><p>${e(item.detail)}</p><small>${e(item.actor)}</small></div></li>`).join('')}</ol>` : '<p class="empty-copy">Your setup and review actions will appear here.</p>'}</section>`;
 }
 export function renderWorkspace(s, ui) {
-  return `${nav(s, ui)}<main id="main" tabindex="-1">${header(s, ui.route, ui)}${ui.error ? `<div class="notice error" role="alert">${e(ui.error)}</div>` : ''}${ui.message ? `<div class="notice" role="status">${e(ui.message)}</div>` : ''}${ui.storageError ? `<div class="notice warning">${e(ui.storageError)}</div>` : ''}<div class="page-content">${({home, dashboard, standards, submissions: queue, review, activity, practice: renderCaseStudent}[ui.route] || home)(s, ui)}</div></main>`;
+  return `${nav(s, ui)}<main id="main" class="${['grade', 'teaching'].includes(ui.route) ? 'grading-main' : ''}" tabindex="-1">${header(s, ui.route, ui)}${ui.error ? `<div class="notice error" role="alert">${e(ui.error)}</div>` : ''}${ui.message ? `<div class="notice" role="status">${e(ui.message)}</div>` : ''}${ui.storageError ? `<div class="notice warning">${e(ui.storageError)}</div>` : ''}<div class="page-content">${({home, dashboard, grade: renderGrade, teaching: renderTeaching, standards, submissions: queue, review, activity, practice: renderCaseStudent}[ui.route] || home)(s, ui)}</div></main>`;
 }

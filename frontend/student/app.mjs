@@ -99,8 +99,12 @@ function render({focus=false}={}) {
  $('#app').innerHTML=`${state.view==='review'?'':sidebar()}<div class="shell ${state.view==='review'?'review-shell':''}">${header()}<main id="main" tabindex="-1">${({home,upload,mapping,review}[state.view])()}</main></div>`;
  if(connected && state.view==='review') {
    $('.review-footer span').textContent = state.busy ? state.progress : state.revision?.saved ? `Version ${state.revision.number} · ${state.revision.final?'Handed in':'Practice saved to course'}` : 'Not saved · retry your upload';
+   const status = document.createElement('p'); status.className = 'submission-context';
+   status.textContent = state.revision?.final ? 'Submitted work · Your TA grades this version. Earlier practice notes do not carry over.' : 'Practice feedback · Revise your work, then hand in the version you want graded.';
+   document.querySelector('.review-heading').insertAdjacentElement('afterend', status);
    const actions=$('.review-heading-actions');
    actions.insertAdjacentHTML('beforeend',btn(state.revision?.final?'Handed in':'Hand in this version','final','primary',state.busy||state.revision?.final||!state.revision?.saved?'disabled':''));
+   if (state.tab === 'feedback' && state.revision?.saved && !state.busy) document.querySelector('#feedback-body').insertAdjacentHTML('beforeend', studentHelp());
  }
  document.title=`Verity · ${state.view==='home'?'Assignments':state.view==='mapping'?'Assign pages':state.view==='upload'?'Upload homework':'Student feedback'}`;
  if(state.view==='mapping')drawThumbs();
@@ -262,6 +266,7 @@ async function action(name){
  state.error='';
  if(connected && ['home','upload'].includes(name) && currentAssignment) setAssignment(currentAssignment);
  if(connected && name==='final') {state.busy=true;render();try{const a=await post(`/attempts/${encodeURIComponent(state.revision.id)}/final`,{});Object.assign(state.revision,a);announce('Submission sent.');}catch(e){state.error=e.message;}finally{state.busy=false;render();}return;}
+ if(connected && name==='help') {const message=document.querySelector('#help-message')?.value || '';state.busy=true;render();try{const a=await post(`/attempts/${encodeURIComponent(state.revision.id)}/help`,{questionId:state.question,message});Object.assign(state.revision,a);announce('Your request is saved for your TA.');}catch(e){state.error=e.message;}finally{state.busy=false;render();}return;}
  if(connected && name==='retry'){await syncStudent(true);return;}
  if(connected && name==='blank'){try{const blob=await(await request(`/files/${encodeURIComponent(assignment.blank)}`)).blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='assignment.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}catch(e){state.error=e.message;render();}return;}
  if(name==='home'){state.view='home';render({focus:true});return;}
@@ -334,6 +339,11 @@ function connectedHome(latest) {
 }
 function connectedUpload() {
  return `<div class="content upload-content">${steps(0)}<div class="page-title"><div><h1>Submit ${assignment.title}</h1><p>Upload your work, then select the pages for each question.</p></div>${mode()}</div>${errorHTML()}<div class="upload-layout"><section class="upload-section"><div id="drop-zone" class="drop-zone" aria-label="PDF drop area"><div class="upload-glyph">${icon('upload')}</div><h2>${state.busy?'Opening your PDF…':'Drop your PDF here'}</h2><p>or choose a file from your computer</p>${btn('Choose PDF','choose','primary',state.busy?'disabled':'')}<span class="file-limit">PDF only · Up to 10 pages · 20 MB</span></div><div class="upload-foot">${icon('layers')}<p>Include all your answers in one PDF. A question can span multiple pages, and a page can belong to multiple questions.</p></div></section><aside class="assignment-summary"><h2>${assignment.title}</h2><dl><div><dt>Questions</dt><dd>${assignment.questions.length}</dd></div><div><dt>Total points</dt><dd>${totalPoints()}</dd></div></dl>${assignment.questions.map(q=>`<div class="summary-question"><span>${q.number}</span><div><strong>${q.title}</strong><small>${q.points} points</small></div></div>`).join('')}<p>Your PDF is saved to your course when you submit. Practice versions and final hand-in are separate.</p></aside></div></div>`;
+}
+function studentHelp() {
+ const pending = state.revision?.helpRequests?.some(h => h.questionId === state.question && h.status === 'open');
+ if (pending) return '<section class="student-help"><h3>Help requested</h3><p>Your TA can see this question and your note. This does not change your grade.</p></section>';
+ return `<section class="student-help"><h3>Want to talk it through?</h3><p>Ask your TA about this question, even if no errors were flagged.</p><label for="help-message">What are you unsure about? <span>(optional)</span></label><textarea id="help-message" rows="2" maxlength="1000" placeholder="Tell your TA where you got stuck"></textarea>${btn('Ask my TA','help','secondary')}<small>Saved to your course. This does not change your grade.</small></section>`;
 }
 async function connectedSubmit() {
  if(state.busy||!state.pdf)return;
