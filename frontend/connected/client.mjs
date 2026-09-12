@@ -100,13 +100,28 @@ export async function submitStudent(revision, assignment) {
 export async function revisionBytes(revision) {
   return (await request(`/files/${encodeURIComponent(revision.documentId)}`)).arrayBuffer();
 }
+export async function addDemoNavigation() {
+  await checkAccessMode();
+  if (demo) addSignOut();
+}
 export function addSignOut() {
   if (demo) {
+    if (document.querySelector('.demo-switcher')) return;
     document.body.classList.add('open-demo');
     const nav = document.createElement('nav'); nav.className = 'demo-switcher'; nav.setAttribute('aria-label', 'Demo perspective');
-    nav.innerHTML = `<span>${perspective === 'student' ? 'Student preview <small>Example data · estimates only</small>' : 'Open demo <small>Dummy data only · everyone has staff access</small>'}</span><div><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a>${perspective === 'teacher' ? '<a href="/teacher/" aria-current="page">TA / Professor</a>' : ''}</div>`;
+    nav.innerHTML = `<div id="demo-controls" class="demo-controls"><div class="demo-context"><span>Demo</span></div><div class="demo-perspectives" aria-label="Switch view"><a href="/student/" ${perspective === 'student' ? 'aria-current="page"' : ''}>Student</a><a href="/teacher/" ${perspective === 'teacher' ? 'aria-current="page"' : ''}>TA</a></div></div><button class="demo-toggle" type="button" aria-controls="demo-controls" aria-expanded="true" aria-label="Collapse demo bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>`;
     document.body.prepend(nav);
-    if (perspective === 'student' && demoStudents.length) {
+    const toggle = nav.querySelector('.demo-toggle'), controls = nav.querySelector('.demo-controls');
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.setAttribute('aria-label', expanded ? 'Collapse demo bar' : 'Expand demo bar');
+      controls.hidden = !expanded;
+      document.body.classList.toggle('demo-collapsed', !expanded);
+      dispatchEvent(new Event('resize'));
+    });
+    if (demoStudents.length) {
+      const label = document.createElement('label'); label.className = 'demo-student';
       const select = document.createElement('select'); select.setAttribute('aria-label', 'Demo student');
       for (const student of demoStudents) {
         const option = document.createElement('option'); option.value = student.id;
@@ -114,8 +129,11 @@ export function addSignOut() {
         select.append(option);
       }
       select.value = sessionStorage.getItem(studentKey);
-      select.addEventListener('change', () => {sessionStorage.setItem(studentKey, select.value); location.reload();});
-      nav.querySelector('div').prepend(select);
+      select.addEventListener('change', () => {
+        sessionStorage.setItem(studentKey, select.value);
+        if (perspective === 'student') location.reload(); else location.assign('/student/');
+      });
+      label.append(select); nav.querySelector('.demo-context').append(label);
     }
     return;
   }

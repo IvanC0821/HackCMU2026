@@ -4,12 +4,20 @@ import {newWorkspace, loadSampleRubric, publishDraft, seedClass, addSampleRevisi
 import {renderWorkspace, routeFrom} from '../view.mjs';
 const baseUI = {route:'home', editQ:0, insightQ:'q1', reviewQ:'q1', sid:'demo-1', attempt:'', search:'', filter:'all', doc:'student', page:0, docURLs:{}, apiOrigin:'http://localhost:8000', apiCourse:'', apiToken:'', storageStatus:'Saved locally'};
 function fixture() {const s = newWorkspace(); loadSampleRubric(s); publishDraft(s); seedClass(s); return s;}
-test('all routes render semantic navigation and no unchecked chart on empty setup', () => {
+test('all routes render semantic navigation and an empty chart without invented scores', () => {
   const s = newWorkspace();
   for (const route of ['home','standards','dashboard','submissions','activity','review']) {
     const html = renderWorkspace(s, {...baseUI, route}); assert.match(html, /<main id="main"/); if (route !== 'standards') assert.match(html, /aria-label="Courses"/);
   }
-  assert.doesNotMatch(renderWorkspace(s, {...baseUI, route:'dashboard'}), /<svg class="question-chart"/);
+  const empty = renderWorkspace(s, {...baseUI, route:'dashboard'});
+  assert.match(empty, /<svg class="question-chart"/);
+  assert.match(empty, /No graded submissions yet/);
+  assert.doesNotMatch(empty, /<polyline|<circle class="point/);
+  const studio = renderWorkspace(s, {...baseUI, route:'standards'});
+  assert.match(studio, /aria-label="Homework sections"/);
+  assert.match(studio, /href="#\/homework\/1\/standards" aria-current="page">Rubric/);
+  assert.match(studio, />Overview<|>Grading</);
+  assert.doesNotMatch(studio, />Activity</);
   assert.equal(routeFrom('#/homework/1/review/demo-1'),'review');
 });
 test('chart exposes real denominators, percentages and provisional sample disclosure', () => {
@@ -21,7 +29,7 @@ test('chart exposes real denominators, percentages and provisional sample disclo
 });
 test('PDF docs, page maps, alternatives, points and external consent appear in setup', () => {
   const html = renderWorkspace(fixture(), {...baseUI, route:'standards'});
-  for (const text of ['Blank PDF pages','Solution PDF pages','Accepted alternatives','Past graded work','Deductions','Finalize grading standard','ai-consent']) assert(html.includes(text));
+  for (const text of ['Blank PDF pages','Solution PDF pages','Accepted alternatives','Past graded work','Deductions','Publish rubric','ai-consent']) assert(html.includes(text));
   assert.doesNotMatch(html, /Professor approval required|three checks/i);
 });
 test('one sample student has first-attempt work and previous version becomes read-only', () => {

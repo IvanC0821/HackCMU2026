@@ -25,13 +25,11 @@ function setDocURLs() {
 function render(focus = false) {
   renderCycle++;
   setDocURLs(); ui.sid = decodeURIComponent(location.hash.split('/review/')[1] || '');
-  document.title = `Verity · ${ui.route === 'home' ? 'Homeworks' : state.title}`;
+  document.title = `Verity · ${ui.route === 'home' ? 'Homework' : state.title}`;
   appRoot.innerHTML = renderWorkspace(state, ui);
   if (connected) {
     const copy = new Map([
-      ['Start with one homework. Your standards, PDFs, and reviews are saved in this browser.', 'Your standards, PDFs and student revisions are saved to the shared course.'],
       ['PDFs stay in this browser unless you explicitly send them to the connected API.', 'References are saved privately to your course. Only the published blank assignment is visible to students.'],
-      ['This local MVP does not publish real grades. Student uploads and live grading integration come next.', 'Student PDFs arrive here automatically. Saved decisions update student feedback and the live chart. Dataset AI assessments are provisional; other new uploads wait for staff review.'],
     ]);
     for (const el of appRoot.querySelectorAll('.quiet-note, .privacy-note')) if (copy.has(el.textContent)) el.textContent = copy.get(el.textContent);
   }
@@ -58,12 +56,12 @@ function announce(text) { document.querySelector('#announcement').textContent = 
 function save() {
   const snapshot = structuredClone(state);
   if (!store || blocked) return Promise.resolve();
-  ui.storageStatus = connected ? 'Saving to course…' : 'Saving locally…';
+  ui.storageStatus = connected ? 'Saving…' : 'Saving locally…';
   saveChain = saveChain.then(async () => {
     if (blocked) return;
     const saved = await store.save(snapshot, persistedRevision); persistedRevision = snapshot.revision;
     if (connected && saved && state.revision === snapshot.revision) { state = saved; persistedRevision = saved.revision; }
-    ui.storageStatus = connected ? 'Connected · saved to course' : 'Saved in this browser'; channel?.postMessage({revision: persistedRevision});
+    ui.storageStatus = connected ? 'Saved' : 'Saved in this browser'; channel?.postMessage({revision: persistedRevision});
     const indicator = document.querySelector('.save-state'); if (indicator) indicator.textContent = ui.storageStatus;
   }).catch(error => { blocked = true; ui.storageError = `${error.message} Keep this tab open or reload to read the saved version.`; ui.storageStatus = 'Save needs attention'; render(); });
   return saveChain;
@@ -354,7 +352,7 @@ async function refreshWorkspace() {
   refreshing = true;
   try {
     const fresh = await store.load();
-    if (fresh?.revision > state.revision) { state = fresh; persistedRevision = fresh.revision; ui.storageError = ''; ui.storageStatus = connected ? 'Connected · live updates' : 'Saved in this browser'; render(); announce('New course activity received. Chart and review queue updated.'); }
+    if (fresh?.revision > state.revision) { state = fresh; persistedRevision = fresh.revision; ui.storageError = ''; ui.storageStatus = connected ? 'Saved' : 'Saved in this browser'; render(); announce('New course activity received. Chart and review queue updated.'); }
   } catch (error) { ui.storageStatus = 'Connection interrupted · retrying'; const indicator = document.querySelector('.save-state'); if (indicator) indicator.textContent = ui.storageStatus; }
   finally { refreshing = false; }
 }
@@ -369,7 +367,7 @@ async function start() {
       const work = state.caseChecks?.at(-1)?.attempt.questions.q1.structured;
       if (work) { ui.caseJSON = JSON.stringify(work, null, 2); ui.caseVariant = Object.keys(caseWork).find(k => JSON.stringify(caseWork[k]) === JSON.stringify(work)) || 'edited'; }
     }
-    ui.connected = connected; ui.storageStatus = connected ? 'Connected · live updates' : 'Saved in this browser';
+    ui.connected = connected; ui.storageStatus = connected ? 'Saved' : 'Saved in this browser';
     if (connected) { addSignOut(); setInterval(refreshWorkspace, 1500); }
   } catch (error) { if (connected) { blocked = true; return; } ui.storageError = error.message; ui.storageStatus = 'Session only'; }
   ui.initializing = false; render();

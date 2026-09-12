@@ -17,7 +17,8 @@ const paths={
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>'
 };
 const icon=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]||paths.file}</svg>`;
-const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:1,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,noteOpen:false,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
+const DEFAULT_ZOOM=.65;
+const state={view:'home',pdf:null,bytes:null,fileName:'',sample:false,mapping:emptyMapping(),question:'q1',page:0,zoom:DEFAULT_ZOOM,error:'',busy:false,progress:'',revisions:[],revision:null,result:null,activeFinding:null,noteOpen:false,tab:'feedback',mobilePanel:'document',thumbs:new Map(),storageWarning:'',loaded:false};
 let pdfjs,drawEpoch=0,loadEpoch=0,currentController,pageRenderTask;
 let currentAssignment = null, remoteRevision = -1, refreshing = false;
 function setAssignment(raw) {
@@ -34,20 +35,20 @@ const fmtDate=value=>new Date(value).toLocaleString(undefined,{month:'short',day
 const pagesLabel=pages=>pages?.length?`${pages.length===1?'Page':'Pages'} ${pages.map(p=>p+1).join(', ')}`:'No pages selected';
 const btn=(label,action,kind='secondary',extra='')=>`<button class="button ${kind}" data-action="${action}" ${extra}>${label}</button>`;
 const errorHTML=()=>state.error?`<div class="error" role="alert">${icon('info')}<span>${esc(state.error)}</span></div>`:'';
-const mode=()=>`<span class="preview-label">${connected?'Connected to your course':isGradedExample()?'Example feedback':state.sample?'Sample preview':'Local preview'}</span>`;
+const mode=()=>connected?'':`<span class="preview-label">${isGradedExample()?'Example feedback':state.sample?'Sample preview':'Local preview'}</span>`;
 
 function sidebar(){return `<aside class="sidebar"><a href="#" class="brand" data-action="home" aria-label="Verity assignments"><span class="brand-symbol">${icon('check')}</span>verity</a>
-  <div class="course-context"><span class="course-initials">DM</span><div><strong>${assignment.course}</strong><span>${assignment.code}</span></div></div>
+  <div class="course-context"><span class="course-initials">DM</span><div><strong>${assignment.course}</strong>${assignment.code && assignment.code !== 'Connected course' ? `<span>${assignment.code}</span>` : ''}</div></div>
   <nav aria-label="Course navigation"><button class="nav-item active" data-action="home">${icon('file')}Assignments</button></nav>
   <div class="sidebar-note">A little feedback.<br>A clearer next step.</div>
   <div class="profile"><span class="avatar">${icon('user')}</span><div><strong>Student workspace</strong><span>HackCMU prototype</span></div></div></aside>`;}
 function header(){
  const isReview=state.view==='review';
  return `<header class="topbar"><div class="breadcrumbs"><button data-action="home" aria-label="Back to assignments">${icon('back')}<span>${isReview?'Assignments':assignment.course}</span></button>${icon('chevron')}<span>${isReview?assignment.title:'Student workspace'}</span></div>
- ${isReview?`<div class="estimate"><div><span>Estimated grade</span><strong>${state.result?.estimatedScore!=null?`${esc(state.result.estimatedScore)}<small> / ${esc(state.result.maxScore)}</small>`:'<span class="score-wait">Pending</span>'}</strong></div></div>`:`<span class="student-label">Student view</span>`}</header>`;
+ ${isReview?`<div class="estimate"><div><span>Estimated grade</span><strong>${state.result?.estimatedScore!=null?`${esc(state.result.estimatedScore)}<small> / ${esc(state.result.maxScore)}</small>`:'<span class="score-wait">Pending</span>'}</strong></div></div>`:''}</header>`;
 }
 function steps(active){return `<ol class="steps" aria-label="Submission progress">${['Upload PDF','Assign pages','Review feedback'].map((name,i)=>`<li class="${i===active?'current':i<active?'complete':''}" ${i===active?'aria-current="step"':''}><span>${i<active?icon('check'):i+1}</span>${name}</li>`).join('')}</ol>`;}
-function home(){const latest=state.revisions[0];if(connected)return connectedHome(latest);return `<div class="content home-content"><div class="page-title"><div><p class="overline">${assignment.course}</p><h1>Your assignments</h1><p>Submit your work. Know what to revisit.</p></div>${mode()}</div>
+function home(){const latest=state.revisions[0];if(connected)return connectedHome(latest);return `<div class="content home-content"><div class="page-title"><div><h1>${assignment.course}</h1></div>${mode()}</div>
  <div class="assignment-list"><div class="list-heading"><h2>Homework</h2><span>1 assignment</span></div>
  <div class="table-scroll"><table><thead><tr><th>Assignment</th><th>Submission</th><th>Feedback</th><th><span class="sr-only">Action</span></th></tr></thead><tbody><tr>
  <td><button class="assignment-name" data-action="upload"><span class="assignment-icon">${icon('file')}</span><span><strong>${assignment.title}</strong><small>${assignment.subtitle}</small></span></button></td>
@@ -60,7 +61,7 @@ function upload(){if(connected)return connectedUpload();return `<div class="cont
  <div class="upload-layout"><section class="upload-section"><div id="drop-zone" class="drop-zone" aria-label="PDF drop area"><div class="upload-glyph">${icon('upload')}</div><h2>${state.busy?'Opening your PDF…':'Drop your PDF here'}</h2><p>or choose a file from your computer</p>${btn('Choose PDF','choose','primary',state.busy?'disabled':'')}<span class="file-limit">PDF only · Up to 10 pages · 20 MB</span></div>
  <div class="upload-foot">${icon('layers')}<p>Include all your answers in one PDF. You can assign the same page to more than one question.</p></div>
  <div class="sample-invitation"><div><strong>Just taking a look?</strong><p>Use a three-page example to explore the full feedback experience.</p></div>${btn('Use sample PDF','sample','secondary',state.busy?'disabled':'')}</div></section>
- <aside class="assignment-summary"><h2>${assignment.title}</h2><p>${assignment.subtitle}</p><dl><div><dt>Questions</dt><dd>3</dd></div><div><dt>Total points</dt><dd>30</dd></div><div><dt>Accepted file</dt><dd>PDF</dd></div></dl><h3>In this assignment</h3>${assignment.questions.map(q=>`<div class="summary-question"><span>${q.number}</span><div><strong>${q.title}</strong><small>${q.points} points</small></div></div>`).join('')}<div class="local-note">${icon('info')}<p>Local preview. Uploads are only saved in this browser when you submit.</p></div></aside></div></div>`;}
+ <aside class="assignment-summary"><h2>${assignment.title}</h2>${!connected && assignment.subtitle ? `<p>${assignment.subtitle}</p>` : ''}<dl><div><dt>Questions</dt><dd>3</dd></div><div><dt>Total points</dt><dd>30</dd></div><div><dt>Accepted file</dt><dd>PDF</dd></div></dl><h3>In this assignment</h3>${assignment.questions.map(q=>`<div class="summary-question"><span>${q.number}</span><div><strong>${q.title}</strong><small>${q.points} points</small></div></div>`).join('')}<div class="local-note">${icon('info')}<p>Local preview. Uploads are only saved in this browser when you submit.</p></div></aside></div></div>`;}
 function mapping(){const q=question(state.question);const missing=mappingIssues(state.mapping,state.pdf?.numPages||0);return `<div class="mapping-page"><div class="content mapping-heading">${steps(1)}<div class="page-title"><div><h1>Where is each answer?</h1><p>Select a question, then select all the pages that contain your work.</p></div>${mode()}</div>${errorHTML()}</div>
  <div class="mapping-layout"><aside class="question-selector"><div class="section-heading"><h2>Questions</h2><span>${assignment.questions.length-missing.length} of ${assignment.questions.length} assigned</span></div>${assignment.questions.map(item=>`<button class="map-question ${state.question===item.id?'selected':''}" data-question="${item.id}" aria-pressed="${state.question===item.id}"><span class="question-number">${item.number}</span><span><strong>${item.title}</strong><small>${pagesLabel(state.mapping[item.id])}</small></span>${state.mapping[item.id]?.length?`<span class="mapped-check">${icon('check')}</span>`:''}</button>`).join('')}<p class="mapping-hint">A page can be assigned to more than one question.</p></aside>
  <section class="page-selection"><div class="selection-heading"><div><span class="overline">Question ${q.number}</span><h2>${q.title}</h2><p>${q.prompt}</p></div><span class="selection-count">${state.mapping[q.id].length} selected</span></div>
@@ -82,7 +83,7 @@ function review(){
  return `<div class="review-page">${errorHTML()}${state.storageWarning?`<div class="error">${esc(state.storageWarning)}</div>`:''}
  <div class="mobile-switch" aria-label="Workspace view"><button class="${state.mobilePanel==='document'?'active':''}" data-panel="document">${icon('file')}Submission</button><button class="${state.mobilePanel==='feedback'?'active':''}" data-panel="feedback">${icon('chat')}Questions & estimates</button></div>
  <div class="review-grid" data-mobile-panel="${state.mobilePanel}">
- <section class="pdf-section" aria-label="Submitted PDF"><div class="pdf-toolbar"><span class="pdf-name" title="${esc(state.fileName)}">${icon('file')}${esc(state.fileName)}</span><div class="zoom-controls" aria-label="PDF zoom"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.75?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width" title="Reset to fit width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=3?'disabled':''}>${icon('plus')}</button></div></div>
+ <section class="pdf-section" aria-label="Submitted PDF"><div class="pdf-toolbar"><span class="pdf-name" title="${esc(state.fileName)}">${icon('file')}${esc(state.fileName)}</span><div class="zoom-controls" aria-label="PDF zoom"><button class="icon-button" data-action="zoom-out" aria-label="Zoom out" ${state.zoom<=.5?'disabled':''}>${icon('minus')}</button><button class="zoom-reset" data-action="zoom-reset" aria-label="Fit page width" title="Reset to fit width">${Math.round(state.zoom*100)}%</button><button class="icon-button" data-action="zoom-in" aria-label="Zoom in" ${state.zoom>=3?'disabled':''}>${icon('plus')}</button></div></div>
  <div class="pdf-scroll" id="pdf-scroll"><div class="paper-wrapper" id="paper-wrapper"><canvas id="pdf-canvas" tabindex="-1" aria-label="Submitted work, page ${state.page+1}"></canvas><div id="annotation-highlights" class="annotation-highlights" aria-hidden="true"></div><div id="markers" class="markers"></div><div id="annotation-note" class="annotation-note"></div><p id="page-transcript" class="sr-only"></p></div></div>
  <div class="pdf-bottom"><div class="page-controls"><button class="icon-button" data-action="prev" aria-label="Previous page" ${state.page===0?'disabled':''}>${icon('back')}</button><label for="page-select" class="sr-only">PDF page</label><select id="page-select">${Array.from({length:state.pdf?.numPages||0},(_,i)=>`<option value="${i}" ${state.page===i?'selected':''}>Page ${i+1} of ${state.pdf.numPages}</option>`).join('')}</select><button class="icon-button" data-action="next" aria-label="Next page" ${state.page>=(state.pdf?.numPages||1)-1?'disabled':''}>${icon('arrow')}</button></div><button class="text-button download-original" data-action="download">${icon('down')}Download original</button></div></section>
  <aside class="feedback-panel" aria-label="Questions and estimated deductions"><div class="student-sidebar-heading"><h1>Questions</h1><span>Estimated grades</span></div>
@@ -125,7 +126,7 @@ async function loadFile(file,{sample=false}={}) {
    const bytes=await file.arrayBuffer();const pdf=await openPdf(bytes);
    if(epoch!==loadEpoch){await pdf.loadingTask.destroy();return;}
    pageRenderTask?.cancel();await state.pdf?.loadingTask.destroy();
-   Object.assign(state,{pdf,bytes,fileName:file.name,sample,mapping:emptyMapping(),question:assignment.questions[0].id,page:0,zoom:1,result:null,revision:null,activeFinding:null,view:'mapping',thumbs:new Map()});
+   Object.assign(state,{pdf,bytes,fileName:file.name,sample,mapping:emptyMapping(),question:assignment.questions[0].id,page:0,zoom:DEFAULT_ZOOM,result:null,revision:null,activeFinding:null,view:'mapping',thumbs:new Map()});
    announce(`PDF opened. ${pdf.numPages} pages. Assign pages to each question.`);
  } catch(error){state.error=error.message?.includes('10 pages')?error.message:'This PDF could not be opened. Check that it isn’t damaged or password-protected, then choose another copy.';}
  finally {if(epoch===loadEpoch){state.busy=false;render({focus:true});}}
@@ -231,7 +232,7 @@ async function submit(){
  if(state.busy||!state.pdf)return;
  const missing=mappingIssues(state.mapping,state.pdf.numPages);
  if(missing.length){state.error='Assign at least one page to every question.';render();return;}
- state.error='';state.storageWarning='';state.busy=true;state.progress=state.sample?'Preparing sample feedback…':'Saving your submission…';state.view='review';state.result=null;state.page=state.mapping.q1[0]||0;state.question='q1';state.zoom=1;state.activeFinding=null;
+ state.error='';state.storageWarning='';state.busy=true;state.progress=state.sample?'Preparing sample feedback…':'Saving your submission…';state.view='review';state.result=null;state.page=state.mapping.q1[0]||0;state.question='q1';state.zoom=DEFAULT_ZOOM;state.activeFinding=null;
  const revision=makeRevision({fileName:state.fileName,bytes:state.bytes,mapping:state.mapping,result:null,number:Math.max(0,...state.revisions.map(r=>r.number))+1,sample:state.sample});
  state.revision=revision;state.revisions.unshift(revision);render({focus:true});
  try{await saveRevision(revision);}catch{state.storageWarning='Browser storage is unavailable. This version is kept only until you close or refresh the page.';}
@@ -252,7 +253,7 @@ async function restore(id){
   if(connected){revision.bytes ||= await revisionBytes(revision);setAssignment(revision.assignment);}
   const pdf=await openPdf(revision.bytes);pageRenderTask?.cancel();await state.pdf?.loadingTask.destroy();
   const first=revision.result?.findings[0];
-  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,noteOpen:false,view:'review',zoom:1,error:'',mobilePanel:'document'});
+  Object.assign(state,{pdf,bytes:revision.bytes.slice(0),fileName:revision.fileName,sample:revision.sample,mapping:structuredClone(revision.mapping),result:revision.result,revision,question:first?.questionId||assignment.questions[0].id,page:first?.pageIndex??revision.mapping[assignment.questions[0].id][0]??0,activeFinding:first?.id||null,noteOpen:false,view:'review',zoom:DEFAULT_ZOOM,error:'',mobilePanel:'document'});
  }catch(error){console.warn('Saved PDF restore failed:',error.message);state.error='The saved PDF could not be reopened. Upload it again to create another version.';}
  finally{state.busy=false;render({focus:true});}
 }
@@ -278,7 +279,7 @@ async function action(name){
  if(name==='prev')state.page=Math.max(0,state.page-1);
  if(name==='next')state.page=Math.min(state.pdf.numPages-1,state.page+1);
  if(name==='zoom-in')state.zoom=Math.min(3,state.zoom+.25);
- if(name==='zoom-out')state.zoom=Math.max(.75,state.zoom-.25);
+ if(name==='zoom-out')state.zoom=Math.max(.5,state.zoom-.25);
  if(name==='zoom-reset')state.zoom=1;
  render();document.querySelector(`[data-action="${name}"]`)?.focus({preventScroll:true});
 }
@@ -314,6 +315,13 @@ document.addEventListener('dragover',event=>{event.preventDefault();$('#drop-zon
 document.addEventListener('dragleave',event=>{if(!event.relatedTarget)$('#drop-zone')?.classList.remove('dragging');});
 document.addEventListener('drop',event=>{event.preventDefault();$('#drop-zone')?.classList.remove('dragging');if(state.busy||state.view!=='upload')return;if(event.dataTransfer.files.length!==1){state.error='Choose one PDF containing all your answers.';render();return;}loadFile(event.dataTransfer.files[0]);});
 let resizeTimer;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(state.view==='review'){drawEpoch++;drawPage();}},160);});
+// Public examples on the classroom host keep the same perspective navigation.
+if(!connected&&location.pathname.startsWith('/student-assets/')){
+ try{
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/connected/shared.css';document.head.append(sheet);
+  const {addDemoNavigation}=await import('../connected/client.mjs');await addDemoNavigation();
+ }catch{ /* A standalone example remains usable if the classroom is unavailable. */ }
+}
 if(connected){
  $('#app').textContent='Connecting to your course…';
  try{await requireRole('student');addSignOut();await syncStudent(true);setInterval(syncStudent,1500);state.loaded=true;}
@@ -321,11 +329,11 @@ if(connected){
 }else{render();try{state.revisions=await readRevisions();}catch{state.storageWarning='Browser storage is unavailable.';}state.loaded=true;if(state.view==='home')render();if(new URLSearchParams(location.search).get('example')==='graded')await loadGradedExample();}
 
 function connectedHome(latest) {
- return `<div class="content home-content"><div class="page-title"><div><p class="overline">Your course</p><h1>Your assignments</h1><p>Published homework and your submission history, in one place.</p></div>${mode()}</div>${errorHTML()}<a class="text-button" href="/student-assets/index.html?example=graded">View estimated example</a>${state.storageWarning?`<p role="status">${esc(state.storageWarning)}</p>`:''}
- ${currentAssignment?`<section class="assignment-list"><div class="list-heading"><h2>${assignment.title}</h2><span>${assignment.subtitle}</span></div><div style="padding:24px"><p>${assignment.questions.length} question${assignment.questions.length===1?'':'s'} · ${totalPoints()} points</p><p>${latest?`Version ${latest.number} · ${latest.final?'Handed in':'Practice saved'} · ${latest.result?.estimatedScore!=null?`Estimated grade: ${latest.result.estimatedScore} / ${latest.result.maxScore}`:'Feedback pending'}`:'No submissions yet'}</p><div class="footer-actions">${btn('Upload your work','upload','primary')}${latest?btn('View submission','latest'):''}${assignment.blank?btn('Download questions','blank'):''}</div></div></section><div class="assignment-bottom"><div>${icon('info')}<p>View your submission, estimated grades, and feedback for each question.</p></div></div>`:`<section class="assignment-list" style="padding:28px"><h2>No homework published yet</h2><p>The assignment is being prepared. It will appear here automatically when published.</p></section>`}</div>`;
+ return `<div class="content home-content"><div class="page-title"><div><h1>${assignment.course}</h1></div>${mode()}</div>${errorHTML()}<a class="text-button" href="/student-assets/index.html?example=graded">View estimated example</a>${state.storageWarning?`<p role="status">${esc(state.storageWarning)}</p>`:''}
+ ${currentAssignment?`<section class="assignment-list"><div class="list-heading"><h2>${assignment.title}</h2></div><div style="padding:24px"><p>${assignment.questions.length} question${assignment.questions.length===1?'':'s'} · ${totalPoints()} points</p><p>${latest?`Version ${latest.number} · ${latest.final?'Handed in':'Practice saved'} · ${latest.result?.estimatedScore!=null?`Estimated grade: ${latest.result.estimatedScore} / ${latest.result.maxScore}`:'Feedback pending'}`:'No submissions yet'}</p><div class="footer-actions">${btn('Upload your work','upload','primary')}${latest?btn('View submission','latest'):''}${assignment.blank?btn('Download questions','blank'):''}</div></div></section>`:`<section class="assignment-list" style="padding:28px"><h2>No homework published yet</h2><p>The assignment is being prepared. It will appear here automatically when published.</p></section>`}</div>`;
 }
 function connectedUpload() {
- return `<div class="content upload-content">${steps(0)}<div class="page-title"><div><h1>Submit ${assignment.title}</h1><p>Upload your work, then select the pages for each question.</p></div>${mode()}</div>${errorHTML()}<div class="upload-layout"><section class="upload-section"><div id="drop-zone" class="drop-zone" aria-label="PDF drop area"><div class="upload-glyph">${icon('upload')}</div><h2>${state.busy?'Opening your PDF…':'Drop your PDF here'}</h2><p>or choose a file from your computer</p>${btn('Choose PDF','choose','primary',state.busy?'disabled':'')}<span class="file-limit">PDF only · Up to 10 pages · 20 MB</span></div><div class="upload-foot">${icon('layers')}<p>Include all your answers in one PDF. A question can span multiple pages, and a page can belong to multiple questions.</p></div></section><aside class="assignment-summary"><h2>${assignment.title}</h2><p>${assignment.subtitle}</p><dl><div><dt>Questions</dt><dd>${assignment.questions.length}</dd></div><div><dt>Total points</dt><dd>${totalPoints()}</dd></div></dl>${assignment.questions.map(q=>`<div class="summary-question"><span>${q.number}</span><div><strong>${q.title}</strong><small>${q.points} points</small></div></div>`).join('')}<p>Your PDF is saved to your course when you submit. Practice versions and final hand-in are separate.</p></aside></div></div>`;
+ return `<div class="content upload-content">${steps(0)}<div class="page-title"><div><h1>Submit ${assignment.title}</h1><p>Upload your work, then select the pages for each question.</p></div>${mode()}</div>${errorHTML()}<div class="upload-layout"><section class="upload-section"><div id="drop-zone" class="drop-zone" aria-label="PDF drop area"><div class="upload-glyph">${icon('upload')}</div><h2>${state.busy?'Opening your PDF…':'Drop your PDF here'}</h2><p>or choose a file from your computer</p>${btn('Choose PDF','choose','primary',state.busy?'disabled':'')}<span class="file-limit">PDF only · Up to 10 pages · 20 MB</span></div><div class="upload-foot">${icon('layers')}<p>Include all your answers in one PDF. A question can span multiple pages, and a page can belong to multiple questions.</p></div></section><aside class="assignment-summary"><h2>${assignment.title}</h2><dl><div><dt>Questions</dt><dd>${assignment.questions.length}</dd></div><div><dt>Total points</dt><dd>${totalPoints()}</dd></div></dl>${assignment.questions.map(q=>`<div class="summary-question"><span>${q.number}</span><div><strong>${q.title}</strong><small>${q.points} points</small></div></div>`).join('')}<p>Your PDF is saved to your course when you submit. Practice versions and final hand-in are separate.</p></aside></div></div>`;
 }
 async function connectedSubmit() {
  if(state.busy||!state.pdf)return;
@@ -345,7 +353,7 @@ async function syncStudent(force=false) {
   if(!changed&&!force)return;
   remoteRevision=data.revision;currentAssignment=data.assignment;
   state.revisions=data.attempts.map(a=>({...a,saved:true,bytes:state.revisions.find(r=>r.id===a.id)?.bytes}));
-  if(state.view==='home'||!state.loaded){if(currentAssignment)setAssignment(currentAssignment);else Object.assign(assignment,{title:'Assignments',course:'Your course',code:'Connected course',questions:[]});}
+  if(state.view==='home'||!state.loaded){if(currentAssignment)setAssignment(currentAssignment);else Object.assign(assignment,{title:'Assignments',course:'Homework',code:'',questions:[]});}
   if(state.view==='review'&&state.revision?.saved){const a=state.revisions.find(a=>a.id===state.revision.id);if(a){state.revision=a;state.result=a.result;}}
   if(['home','review'].includes(state.view)||force)render();
   announce('Course updated. Your latest feedback is available.');

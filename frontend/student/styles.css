@@ -114,7 +114,7 @@ main[tabindex="-1"]:focus{outline:none}
  .submission-tools>.button:last-child{margin-left:auto}.review-shell .review-footer{padding:10px 16px;gap:6px;flex-direction:column;align-items:flex-start}
 }
 
-.open-demo .review-shell .review-grid{height:calc(100dvh - 260px)}
+.open-demo .review-shell .review-grid{height:calc(100dvh - 188px - var(--demo-bar-height,52px))}
 body:has(.review-shell) .demo-switcher>div{border-radius:2px}
 body:has(.review-shell) .demo-switcher select,body:has(.review-shell) .demo-switcher a{border-radius:2px}
 body:has(.review-shell):not(.open-demo) .connected-signout{border-radius:2px}
